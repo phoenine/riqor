@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-next-core"
+version = "0.1.0.dev0"
+description = "Project-agnostic testing engineering agent core"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.23,<5",
+  "PyYAML>=6,<7",
+]
+
+[project.scripts]
+agent-next = "tools.agent_next:main"
+
+[tool.setuptools]
+packages = ["tools"]

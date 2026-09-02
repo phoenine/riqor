@@ -1,0 +1,13 @@
+schema_version: 1
+id: test-case-design
+title: Design executable test cases
+workflow: feature-quality
+phase: Test Design
+requires:
+  all: [requirement_spec, risk_analysis, test_points]
+optional: []
+produces: [test_cases]
+side_effect: false
+action_class: local_write
+skill: test-case-design
+template: test-cases

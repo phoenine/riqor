@@ -1,0 +1,12 @@
+schema_version: 1
+id: bug-change-scope
+title: Resolve the bug fix change scope
+workflow: bug-regression
+phase: Change Scope
+requires:
+  all: [bug_report]
+produces: [change_scope]
+skill: test-analysis
+side_effect: false
+action_class: local_write
+template: change-scope

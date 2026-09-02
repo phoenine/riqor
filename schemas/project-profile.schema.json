@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/project-profile.schema.json",
+  "title": "Agent-next Project Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "knowledge"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "tracks"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+        "name": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "tracks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$"}
+        },
+        "default_track": {"type": "string"}
+      }
+    },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "template", "index"],
+      "properties": {
+        "root": {"type": "string", "minLength": 1},
+        "template": {"type": "string", "minLength": 1},
+        "index": {"type": "string", "minLength": 1}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root"],
+      "properties": {
+        "root": {"type": "string", "minLength": 1}
+      }
+    },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "product": {"$ref": "#/$defs/repositories"},
+        "automation": {"$ref": "#/$defs/repositories"},
+        "tools": {"$ref": "#/$defs/repositories"}
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/integration"}
+    },
+    "environments": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/environment"}
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "require_confirmation": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["remote_write", "shared_environment_execution", "shared_data_mutation"]
+          }
+        }
+      }
+    },
+    "extensions": {"type": "object"}
+  },
+  "$defs": {
+    "repositories": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/repository"}
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "tracks": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "capabilities": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "default_branch": {"type": "string"}
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {"required": ["skill"]},
+        {"required": ["adapter"]}
+      ],
+      "properties": {
+        "skill": {"type": "string", "minLength": 1},
+        "adapter": {"type": "string", "minLength": 1},
+        "config": {"type": "object"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk"],
+      "properties": {
+        "risk": {"type": "string", "enum": ["local", "shared", "production_like"]},
+        "skill": {"type": "string"},
+        "adapter": {"type": "string"}
+      }
+    }
+  }
+}

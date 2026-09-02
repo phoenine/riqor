@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "BASELINE-checkout-001",
+  "type": "release_baseline",
+  "project_id": "shop-platform",
+  "scope_id": "checkout-release",
+  "tracks": ["web", "backend"],
+  "status": "ready",
+  "revision": 1,
+  "content_path": "examples/shop-platform/docs/checkout-release-baseline.md",
+  "source_artifacts": [],
+  "evidence": [{"type": "document", "reference": "examples/shop-platform/docs/checkout-release-baseline.md"}],
+  "validation": {"status": "passed"}
+}

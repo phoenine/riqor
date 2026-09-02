@@ -1,0 +1,13 @@
+schema_version: 1
+id: test-point-design
+title: Design test points
+workflow: feature-quality
+phase: Test Design
+requires:
+  all: [prd, requirement_spec]
+optional: [risk_analysis]
+produces: [test_points]
+side_effect: false
+action_class: local_write
+skill: test-analysis
+template: test-points

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/artifact.schema.json",
+  "title": "Agent-next Artifact Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "type", "project_id", "scope_id", "tracks", "status", "revision", "content_path", "source_artifacts", "evidence", "validation"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "run_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+    "type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"},
+    "project_id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+    "scope_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "tracks": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["missing", "draft", "ready", "stale", "blocked", "failed"]},
+    "revision": {"type": "integer", "minimum": 1},
+    "content_path": {"type": "string", "minLength": 1},
+    "content_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "source_artifacts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^.+@[1-9][0-9]*$"}
+    },
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidence"}
+    },
+    "validation": {"$ref": "#/$defs/validation"},
+    "extensions": {"type": "object"}
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reference"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["document", "repository_file", "symbol", "commit", "diff", "api_contract", "runtime_observation", "execution_log", "user_confirmation"]
+        },
+        "reference": {"type": "string", "minLength": 1},
+        "revision": {"type": "string"},
+        "supports": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"type": "string", "enum": ["pending", "passed", "failed"]},
+        "checked_at": {"type": "string", "format": "date-time"},
+        "errors": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

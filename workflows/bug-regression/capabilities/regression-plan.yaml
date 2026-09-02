@@ -1,0 +1,13 @@
+schema_version: 1
+id: bug-regression-plan
+title: Create a regression plan
+workflow: bug-regression
+phase: Regression Plan
+requires:
+  all: [coverage_match]
+optional: [test_cases]
+produces: [regression_plan]
+skill: reporting
+side_effect: false
+action_class: local_write
+template: regression-plan

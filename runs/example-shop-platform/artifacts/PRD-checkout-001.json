@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "PRD-checkout-001",
+  "type": "prd",
+  "project_id": "shop-platform",
+  "scope_id": "checkout",
+  "tracks": ["web", "backend"],
+  "status": "ready",
+  "revision": 1,
+  "content_path": "examples/shop-platform/docs/checkout-prd.md",
+  "source_artifacts": [],
+  "evidence": [{"type": "document", "reference": "examples/shop-platform/docs/checkout-prd.md"}],
+  "validation": {"status": "passed"}
+}

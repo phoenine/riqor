@@ -1,0 +1,95 @@
+schema_version: 1
+
+project:
+  id: epvs-example
+  name: ePVS Private Profile Example
+  description: Secret-free contract example; copy to config/projects/epvs.yaml and replace local placeholders.
+  tracks: [v1, v2, shared]
+  default_track: v2
+
+knowledge:
+  root: profiles/epvs/knowledge-example
+  template: standard-product
+  index: profiles/epvs/knowledge-example/_index.md
+
+artifacts:
+  root: outputs/epvs
+
+repositories:
+  product:
+    - id: epvs-product-v1
+      path: repositories/product/epvs-v1
+      tracks: [v1]
+    - id: epvs-product-v2
+      path: repositories/product/epvs-v2
+      tracks: [v2]
+  automation:
+    - id: envision-webtest
+      path: repositories/automation/envision-webtest
+      tracks: [v1, v2]
+      capabilities: [web, hybrid]
+    - id: envision-apitest
+      path: repositories/automation/envision-apitest
+      tracks: [v1, v2, shared]
+      capabilities: [api]
+      default_branch: dev
+  tools:
+    - id: epvs-data-tools
+      path: repositories/tools/epvs-data-tools
+      tracks: [shared]
+      capabilities: [data-preparation]
+
+integrations:
+  test-management:
+    skill: zentao-sync
+    config:
+      cli: zentao-cli
+      environment_group: ZENTAO
+      module_mapping_source: private-project-profile
+  web-automation:
+    skill: epvs-automation
+    config:
+      repository: envision-webtest
+      environment_groups: [TEST_SERVER, EPVS_TEST]
+      branches:
+        v1: hermes-cases
+        v2: hermes-2.0
+  api-automation:
+    skill: epvs-automation
+    config:
+      repository: envision-apitest
+      environment_groups: [TEST_SERVER, EPVS_TEST]
+      branch: dev
+  data-preparation:
+    skill: epvs-data-injection
+    config:
+      repository: epvs-data-tools
+      environment_groups: [PG, CK, RABBITMQ]
+
+environments:
+  local:
+    risk: local
+  shared-test:
+    risk: shared
+    skill: epvs-data-injection
+
+policies:
+  require_confirmation:
+    - remote_write
+    - shared_environment_execution
+    - shared_data_mutation
+
+extensions:
+  epvs:
+    compatibility_profile: profiles/epvs/profile.yaml
+    private_configuration_required:
+      - knowledge
+      - repository-revisions
+      - zentao-module-mapping
+      - environment-endpoints
+      - credentials
+    release_scope_tracks: [v1, v2, shared]
+    output_routing:
+      feature: outputs/epvs/features/<scope-id>
+      bug: outputs/epvs/bugs/<bug-id>
+      release: outputs/epvs/releases/<release-id>

@@ -1,0 +1,14 @@
+schema_version: 1
+id: release-acceptance-plan
+title: Create a release acceptance plan
+workflow: release-acceptance
+phase: Acceptance Plan
+requires:
+  all: [release_scope]
+optional: [risk_analysis, test_cases]
+produces: [acceptance_plan]
+skill: release-acceptance
+side_effect: false
+action_class: local_write
+template: acceptance-plan
+cross_scope_inputs: true

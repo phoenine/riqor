@@ -1,0 +1,9 @@
+schema_version: 1
+id: default
+title: Default product profile
+knowledge_template: standard-product
+workflow_packs:
+  - feature-quality
+  - bug-regression
+  - release-acceptance
+

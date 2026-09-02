@@ -1,0 +1,14 @@
+schema_version: 1
+id: release-scope-collection
+title: Reconcile the release scope
+workflow: release-acceptance
+phase: Scope Collection
+requires:
+  all: [release_baseline]
+optional: [requirement_spec, bug_report]
+produces: [release_scope]
+skill: release-acceptance
+side_effect: false
+action_class: local_write
+template: release-scope
+cross_scope_inputs: true

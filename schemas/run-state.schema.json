@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/run-state.schema.json",
+  "title": "agent-next run state",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [
+    {
+      "required": ["project_id", "tracks"],
+      "properties": {
+        "project_id": {"type": "string", "minLength": 1},
+        "tracks": {"type": "array", "minItems": 1}
+      }
+    },
+    {
+      "required": ["product_line"],
+      "properties": {
+        "product_line": {"type": "string", "minLength": 1}
+      }
+    }
+  ],
+  "required": [
+    "schema_version",
+    "run_id",
+    "entry",
+    "workflow",
+    "phase",
+    "required_skills",
+    "loaded_skills",
+    "skill_receipts",
+    "repositories",
+    "repository_evidence",
+    "knowledge_used",
+    "knowledge_plan",
+    "environment",
+    "confirmations",
+    "artifacts",
+    "traceability",
+    "gate_results"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 2
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "tracks": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "product_line": {
+      "type": "string",
+      "deprecated": true
+    },
+    "release_scope_tracks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "entry": {
+      "type": "string",
+      "enum": ["feature-quality", "bug-regression", "release-acceptance"]
+    },
+    "workflow": {
+      "type": "string",
+      "pattern": "^workflows/.+\\.md$"
+    },
+    "phase": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_skills": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "loaded_skills": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "skill_receipts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/skill_receipt" }
+    },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dev", "test", "tools"],
+      "properties": {
+        "dev": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repository" }
+        },
+        "test": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repository" }
+        },
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repository" }
+        }
+      }
+    },
+    "repository_evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/repository_evidence" }
+    },
+    "knowledge_used": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/knowledge_used" }
+    },
+    "knowledge_plan": {
+      "$ref": "#/$defs/knowledge_plan"
+    },
+    "knowledge_proposed_updates": {
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/knowledge_update" }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_groups", "checked_groups", "target"],
+      "properties": {
+        "required_groups": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "checked_groups": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "confirmations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/confirmation" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "traceability": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/trace_link" }
+    },
+    "gate_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/gate_result" }
+    },
+    "notes": {
+      "type": "array",
+      "default": [],
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "skill_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill", "path", "sha256", "supports_phase"],
+      "properties": {
+        "skill": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^skills/.+/SKILL\\.md$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "supports_phase": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "path"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["dev", "test", "tools"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": { "type": "string" },
+        "tag": { "type": "string" },
+        "commit": { "type": "string" },
+        "working_tree_state": {
+          "type": "string",
+          "enum": ["clean", "dirty", "unknown"]
+        }
+      }
+    },
+    "repository_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "evidence_type", "references", "supports"],
+      "properties": {
+        "repo": { "type": "string", "minLength": 1 },
+        "evidence_type": {
+          "type": "string",
+          "enum": ["file", "commit", "diff", "symbol", "command", "other"]
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "supports": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "knowledge_used": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "used_for"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(knowledge/.+|skills/.+/references/.+)$"
+        },
+        "used_for": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      }
+    },
+    "knowledge_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "summary", "status"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^[^/].+\\.md$"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {"type": "string", "minLength": 1},
+        "type": {
+          "type": "string",
+          "enum": ["term", "business_rule", "user_flow", "architecture", "interface", "data_model", "test_strategy", "operation", "scenario"]
+        },
+        "content": {"type": "string", "minLength": 1},
+        "source_artifact": {"type": "string", "minLength": 1},
+        "status": {
+          "type": "string",
+          "enum": ["proposed", "confirmed", "rejected"]
+        },
+        "confirmed_by": {"type": "string", "minLength": 1},
+        "confirmed_at": {"type": "string", "minLength": 1}
+      }
+    },
+    "knowledge_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "summary", "evidence"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "not_needed", "proposed", "confirmed", "rejected"]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "confirmed_by": { "type": "string" },
+        "confirmed_at": { "type": "string" }
+      }
+    },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "action", "status"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["required", "confirmed", "rejected", "not_required"]
+        },
+        "confirmed_by": { "type": "string" },
+        "confirmed_at": { "type": "string" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "path", "producer_phase", "source_artifacts", "evidence", "validation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "producer_phase": { "type": "string", "minLength": 1 },
+        "source_artifacts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["pending", "passed", "failed", "not_required"]
+            },
+            "details": { "type": "string" }
+          }
+        }
+      }
+    },
+    "trace_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "relation"],
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "relation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "status", "checks"],
+      "properties": {
+        "phase": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["passed", "failed", "blocked", "not_run"]
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "status"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "status": {
+                "type": "string",
+                "enum": ["passed", "failed", "not_applicable"]
+              },
+              "details": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

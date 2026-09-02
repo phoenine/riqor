@@ -1,0 +1,13 @@
+schema_version: 1
+id: bug-impact-analysis
+title: Analyze regression impact
+workflow: bug-regression
+phase: Impact Analysis
+requires:
+  all: [change_scope]
+optional: [requirement_spec]
+produces: [risk_analysis]
+skill: test-analysis
+side_effect: false
+action_class: local_write
+template: risk-analysis

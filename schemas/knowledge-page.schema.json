@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/knowledge-page.schema.json",
+  "title": "Agent-next Knowledge Page",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "type", "confidence"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "type": {
+      "type": "string",
+      "enum": ["index", "term", "business_rule", "user_flow", "architecture", "interface", "data_model", "test_strategy", "operation", "scenario"]
+    },
+    "domains": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "aliases": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+    "related": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+    "confidence": {"type": "string", "enum": ["observed", "inferred", "confirmed", "deprecated"]},
+    "last_verified": {"type": "string", "format": "date"},
+    "extensions": {"type": "object"}
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reference"],
+      "properties": {
+        "type": {"type": "string", "enum": ["document", "repository_file", "user_confirmation"]},
+        "reference": {"type": "string", "minLength": 1},
+        "revision": {"type": "string"}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "relation"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "relation": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
+

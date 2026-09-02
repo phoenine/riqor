@@ -1,0 +1,31 @@
+schema_version: 1
+
+project:
+  id: shop-platform
+  name: Shop Platform
+  description: Minimal example for validating Agent-next project contracts.
+  tracks: [web, backend]
+  default_track: backend
+
+knowledge:
+  root: examples/shop-platform/knowledge
+  template: standard-product
+  index: examples/shop-platform/knowledge/_index.md
+
+artifacts:
+  root: outputs/shop-platform
+
+repositories:
+  product: []
+  automation: []
+  tools: []
+
+environments:
+  local:
+    risk: local
+
+policies:
+  require_confirmation:
+    - remote_write
+    - shared_environment_execution
+    - shared_data_mutation

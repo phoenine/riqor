@@ -1,0 +1,13 @@
+schema_version: 1
+id: requirement-specification
+title: Generate a testable requirement specification
+workflow: feature-quality
+phase: Requirement Specification
+requires:
+  all: [prd]
+optional: []
+produces: [requirement_spec]
+side_effect: false
+action_class: local_write
+skill: requirement-analysis
+template: requirement-spec

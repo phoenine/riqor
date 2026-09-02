@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/knowledge-sources.schema.json",
+  "title": "Agent-next Knowledge Sources",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_id", "sources"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "project_id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "reference", "status"],
+        "properties": {
+          "type": {"type": "string", "enum": ["document"]},
+          "reference": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "enum": ["registered", "reviewed", "rejected"]}
+        }
+      }
+    }
+  }
+}
+

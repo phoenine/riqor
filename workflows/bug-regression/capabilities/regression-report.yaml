@@ -1,0 +1,12 @@
+schema_version: 1
+id: bug-regression-report
+title: Produce a regression report
+workflow: bug-regression
+phase: Regression Report
+requires:
+  all: [regression_plan, execution_record]
+produces: [regression_report]
+skill: reporting
+side_effect: false
+action_class: local_write
+template: regression-report

@@ -1,0 +1,12 @@
+schema_version: 1
+id: release-execution-record
+title: Record release acceptance execution
+workflow: release-acceptance
+phase: Acceptance Execution
+requires:
+  all: [acceptance_plan]
+produces: [execution_record]
+skill: automation
+side_effect: false
+action_class: local_write
+template: execution-record

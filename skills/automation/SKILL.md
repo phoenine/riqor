@@ -1,0 +1,49 @@
+---
+name: automation
+description: Classify, plan, generate, validate, or execute API, Web, and hybrid test automation using repositories and commands declared by the active Project Profile.
+---
+
+# automation
+
+Use this skill after requirements, risks, test points, or test cases establish
+the intended coverage. The Project Profile selects repositories, frameworks,
+tracks, branches, and environment policy; this skill does not assume any
+product or framework.
+
+## Required context
+
+- Current workflow phase and Stage Gate rules.
+- Project Profile repository entries with the required automation capability.
+- Existing manual and automated coverage.
+- Target environment and its confirmation policy.
+
+## Workflow
+
+1. Classify each coverage item as API, Web/UI, hybrid, or manual-only and record
+   why.
+2. Prefer an existing matching case before generating new automation.
+3. Resolve the repository and command from the Project Profile or its selected
+   project Skill. Do not infer branches, endpoints, credentials, or framework
+   conventions.
+4. Produce an `automation_classification` or execution plan before changing an
+   automation repository or running against a shared environment.
+5. Request confirmation immediately before repository mutation, shared
+   environment execution, or shared-data mutation.
+6. Record the command, revision, environment, result, and evidence in Run State
+   and the relevant artifact.
+
+## Project extensions
+
+Load a project-specific automation Skill only when the Project Profile selects
+one. It may provide framework commands, repository layout, branch mapping, or
+data-preparation rules, but it must preserve the confirmation and evidence
+boundaries above.
+
+## Do not
+
+- Do not create a new automation framework when a declared repository already
+  provides one.
+- Do not guess API routes from source names; verify the real client or network
+  path.
+- Do not execute or mutate shared state without explicit confirmation.
+- Do not upload cases to a test-management system; use its selected sync Skill.

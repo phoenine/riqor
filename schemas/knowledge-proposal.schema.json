@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/knowledge-proposal.schema.json",
+  "title": "Agent-next Knowledge Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "path", "title", "type", "summary", "content", "source_artifact"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "path": {"type": "string", "pattern": "^[^/].+\\.md$"},
+    "title": {"type": "string", "minLength": 1},
+    "type": {
+      "type": "string",
+      "enum": ["term", "business_rule", "user_flow", "architecture", "interface", "data_model", "test_strategy", "operation", "scenario"]
+    },
+    "summary": {"type": "string", "minLength": 1},
+    "content": {"type": "string", "minLength": 1},
+    "source_artifact": {"type": "string", "minLength": 1}
+  }
+}

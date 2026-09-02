@@ -1,0 +1,12 @@
+schema_version: 1
+id: release-decision
+title: Produce the release acceptance decision
+workflow: release-acceptance
+phase: Release Decision
+requires:
+  all: [acceptance_plan, execution_record]
+produces: [acceptance_report]
+skill: release-acceptance
+side_effect: false
+action_class: local_write
+template: acceptance-report

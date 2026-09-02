@@ -1,0 +1,13 @@
+schema_version: 1
+id: document-risk-analysis
+title: Assess requirement risks from documents
+workflow: feature-quality
+phase: Risk Analysis
+requires:
+  all: [prd, requirement_spec]
+optional: []
+produces: [risk_analysis]
+side_effect: false
+action_class: local_write
+skill: test-analysis
+template: risk-analysis

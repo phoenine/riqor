@@ -1,0 +1,13 @@
+schema_version: 1
+id: bug-coverage-match
+title: Match existing regression coverage
+workflow: bug-regression
+phase: Coverage Match
+requires:
+  all: [risk_analysis]
+optional: [test_cases]
+produces: [coverage_match]
+skill: test-case-design
+side_effect: false
+action_class: local_write
+template: coverage-match

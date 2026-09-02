@@ -1,0 +1,13 @@
+schema_version: 1
+id: bug-execution-record
+title: Record regression execution
+workflow: bug-regression
+phase: Execution
+requires:
+  all: [regression_plan]
+optional: [test_cases]
+produces: [execution_record]
+skill: automation
+side_effect: false
+action_class: local_write
+template: execution-record
