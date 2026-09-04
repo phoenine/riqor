@@ -88,8 +88,6 @@ agent-new/
 ├── docs/
 ├── knowledge/
 │   └── <project-id>/
-├── profiles/
-│   └── default/
 ├── workflows/
 │   ├── feature-quality/
 │   ├── bug-regression/

@@ -260,7 +260,6 @@ python -m unittest discover -s tests -p 'test_*.py'
 ```text
 config/               Project Profile registrations
 knowledge/            Reusable knowledge, isolated by project
-profiles/             Reusable project presets
 workflows/            Declarative workflow capabilities
 skills/               Agent-facing workflow instructions
 templates/            Managed .md.tmpl sources for knowledge and artifacts

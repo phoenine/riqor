@@ -13,7 +13,6 @@ class RepositoryLayoutTests(unittest.TestCase):
             "config/projects",
             "docs",
             "knowledge",
-            "profiles/default",
             "workflows/feature-quality",
             "workflows/bug-regression",
             "workflows/release-acceptance",

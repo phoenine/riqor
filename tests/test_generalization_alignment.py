@@ -45,12 +45,6 @@ class GeneralizationAlignmentTests(unittest.TestCase):
         }
         self.assertEqual(distributed, set(GENERIC_SKILLS))
 
-    def test_repository_distributes_only_the_default_profile(self) -> None:
-        distributed = {
-            path.name for path in (ROOT / "profiles").iterdir() if path.is_dir()
-        }
-        self.assertEqual(distributed, {"default"})
-
     def test_zentao_stays_skill_first(self) -> None:
         skill = (ROOT / "skills" / "zentao-sync" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("zentao-cli", skill)
