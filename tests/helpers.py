@@ -59,5 +59,16 @@ def write_template_artifact(
         ).replace("**状态**：completed", "**状态**：pending_validation").replace(
             "**等级**：completed", "**等级**：P2"
         )
+    if template == "test-points":
+        for risk_type in (
+            "security",
+            "availability_resilience",
+            "performance",
+            "compatibility",
+        ):
+            content = content.replace(
+                f"| {risk_type} | completed | completed |",
+                f"| {risk_type} | not_applicable | non-platform test scope |",
+            )
     path.write_text(content + "\nCompleted artifact content.\n", encoding="utf-8")
     return path

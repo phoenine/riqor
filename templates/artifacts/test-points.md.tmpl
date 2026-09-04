@@ -32,6 +32,17 @@ analysis_depth:
 
 仅在 `analysis_depth: complex` 时填写适用内容，例如 Decision Table、State Transition、Coverage Matrix 或 Combination Analysis。Simple / Standard 可写“不适用”。
 
+## 非功能覆盖评估
+
+平台或共享框架范围涉及认证、授权、会话、租户、路由、共享配置或公共客户端基础设施时，必须逐类评估；普通功能范围可写 `not_applicable` 并说明范围理由。
+
+| Risk Type | 结论（covered / gap / not_applicable） | RISK / TP 或范围理由 |
+|---|---|---|
+| security | <结论> | <RISK-### / TP-### 或理由> |
+| availability_resilience | <结论> | <RISK-### / TP-### 或理由> |
+| performance | <结论> | <RISK-### / TP-### 或理由> |
+| compatibility | <结论> | <RISK-### / TP-### 或理由> |
+
 ## 覆盖缺口
 
 ## 可追溯关系

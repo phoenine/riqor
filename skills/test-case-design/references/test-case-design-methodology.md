@@ -107,11 +107,16 @@ one large case unless the test point explicitly defines an end-to-end scenario.
 
 ## 5. Split, Merge, and Deduplicate
 
-Use parameterized or data-driven cases only when the operation path and expected
-result are essentially the same.
+Use parameterized or data-driven cases only when the setup, operation path,
+observation surface, expected result, assertion basis, priority, and
+traceability are materially the same. A parameter row must be independently
+executable and reportable so a partial failure can be attributed to one data
+condition.
 
 When a case is parameterized, multi-combination, or data-heavy, put the data in
-the `测试数据` field. Keep single simple values in steps when that is clearer.
+the `测试数据` field and give each row a stable `DATA-###` ID. Keep the case ID in
+the standard `TC-###` form; the behavior name belongs in the title. Keep single
+simple values in steps when that is clearer.
 
 Prefer separate cases when:
 
@@ -129,6 +134,37 @@ renumbering or rewriting them unnecessarily.
 ## 6. Expected Results
 
 Expected results must be observable and deterministic.
+
+Every numbered expected result has one numbered `断言依据` entry with the same
+index:
+
+```text
+1. requirement | REQ-005
+2. business_rule | BR-003
+3. hypothesis | RISK-024 / TP-043
+```
+
+Use these stable assertion types:
+
+| Assertion Type | Meaning | Source expectation |
+|---|---|---|
+| `requirement` | Explicit normative product behavior | Exact Atomic Requirement ID (`REQ-###`) |
+| `business_rule` | Explicit business rule | Exact Business Rule ID (`BR-###`) |
+| `contract` | An in-scope API, compatibility, or implementation contract | Exact document, API, version, section, path, or symbol locator |
+| `risk_derived` | Check derived from an accepted Risk / Test Point | `RISK-###`, `TP-###`, or both |
+| `hypothesis` | Exploratory tester-derived proposition not yet normative | `RISK-###`, `TP-###`, or `Q-###` plus the proposition's context |
+
+Assertion source describes why the expected result is justified; it is not the
+execution evidence collected after running the case. Do not relabel a useful
+security or performance hypothesis as a requirement merely to make it release
+blocking. If a hypothesis needs a new product obligation or threshold, return
+it upstream as a Risk, Coverage Gap, or Open Question first.
+
+A failed case does not determine defect class by itself. A mismatch with a
+clear requirement, business rule, or contract is a candidate implementation
+defect; an ambiguous or conflicting source is a requirement gap; a failed
+`risk_derived` or `hypothesis` assertion is an observation or finding that
+requires triage.
 
 Avoid vague expectations:
 

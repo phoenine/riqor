@@ -40,6 +40,31 @@ def completed_risk_text() -> str:
     ).replace("**等级**：completed", "**等级**：P1")
 
 
+def completed_test_points_text() -> str:
+    text = (ROOT / "templates/artifacts/test-points.md.tmpl").read_text(
+        encoding="utf-8"
+    )
+    text = re.sub(r"<[^>\n]+>", "completed", text)
+    text = text.replace("analysis_depth:", "analysis_depth: standard", 1)
+    text = text.replace(
+        "|---|---|---|---|---|---|---|---|\n\n## 复杂度辅助分析",
+        "|---|---|---|---|---|---|---|---|\n"
+        "| TP-001 | Sample behavior | P2 | Functional | valid | Scenario | observable result | source evidence |\n\n"
+        "## 复杂度辅助分析",
+    )
+    for risk_type in (
+        "security",
+        "availability_resilience",
+        "performance",
+        "compatibility",
+    ):
+        text = text.replace(
+            f"| {risk_type} | completed | completed |",
+            f"| {risk_type} | not_applicable | non-platform test scope |",
+        )
+    return text + "\nCompleted artifact content.\n"
+
+
 class ValidateArtifactTests(unittest.TestCase):
     def test_copy_template_types_are_covered(self):
         copy_template = load_tool("copy_template")
@@ -218,6 +243,35 @@ class ValidateArtifactTests(unittest.TestCase):
 
             self.assertIn("duplicate Risk ID: RISK-001", errors)
             self.assertIn("RISK-001: missing or empty field '代码证据'", errors)
+
+    def test_test_points_requires_platform_nfr_assessment(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test-points.md"
+            path.write_text(completed_test_points_text(), encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="test_points"
+            )
+
+            self.assertEqual(errors, [])
+
+    def test_covered_platform_nfr_assessment_requires_risk_and_test_point(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test-points.md"
+            text = completed_test_points_text().replace(
+                "| security | not_applicable | non-platform test scope |",
+                "| security | covered | security review completed |",
+            )
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="test_points"
+            )
+
+            self.assertIn(
+                "security: covered assessment requires both RISK-### and TP-###",
+                errors,
+            )
 
     def test_regression_plan_from_template_passes(self):
         with TemporaryDirectory() as tmp:

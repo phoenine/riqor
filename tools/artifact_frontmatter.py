@@ -18,6 +18,7 @@ TEST_CASES_TEMPLATE_MARKERS = (
     "## 摘要",
     "## 用例列表",
     "用例类型：",
+    "断言依据：",
     "## 覆盖摘要",
     "## 覆盖缺口",
 )
@@ -52,11 +53,24 @@ NEW_TEST_POINTS_TEMPLATE_MARKERS = (
     "## 测试空间",
     "## 测试点列表",
     "## 复杂度辅助分析",
+    "## 非功能覆盖评估",
     "## 覆盖缺口",
     "## 可追溯关系",
 )
 
 VALID_ANALYSIS_DEPTHS = frozenset({"simple", "standard", "complex"})
+PLATFORM_NFR_TYPES = (
+    "security",
+    "availability_resilience",
+    "performance",
+    "compatibility",
+)
+VALID_NFR_ASSESSMENT_RESULTS = frozenset({"covered", "gap", "not_applicable"})
+NFR_ASSESSMENT_ROW_RE = re.compile(
+    r"^\|\s*(security|availability_resilience|performance|compatibility)\s*"
+    r"\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$",
+    re.MULTILINE,
+)
 TEST_POINTS_HEADER_RE = re.compile(
     r"^\|\s*ID\s*\|\s*测试点\s*\|\s*优先级\s*\|\s*维度\s*\|\s*条件\s*\|\s*技术\s*\|\s*覆盖意图\s*\|\s*依据\s*\|\s*$",
     re.MULTILINE,
@@ -167,8 +181,47 @@ def validate_test_points_template_body(text: str) -> list[str]:
             "| ID | 测试点 | 优先级 | 维度 | 条件 | 技术 | 覆盖意图 | 依据 |"
         )
 
+    errors.extend(validate_platform_nfr_assessment(text))
+
     errors.extend(lint_test_points_text(text))
 
+    return errors
+
+
+def validate_platform_nfr_assessment(text: str) -> list[str]:
+    errors: list[str] = []
+    heading = re.search(r"^## 非功能覆盖评估\s*$", text, re.MULTILINE)
+    if not heading:
+        return ["test_points must contain a 非功能覆盖评估 section"]
+    next_heading = re.search(r"^## \S.*$", text[heading.end() :], re.MULTILINE)
+    end = heading.end() + next_heading.start() if next_heading else len(text)
+    section = text[heading.end() : end]
+    rows = NFR_ASSESSMENT_ROW_RE.findall(section)
+    seen: set[str] = set()
+    for risk_type, result, rationale in rows:
+        if risk_type in seen:
+            errors.append(f"duplicate non-functional assessment row: {risk_type}")
+        seen.add(risk_type)
+        result = result.strip()
+        rationale = rationale.strip()
+        if result not in VALID_NFR_ASSESSMENT_RESULTS:
+            errors.append(
+                f"{risk_type}: non-functional assessment result must be one of: "
+                + ", ".join(sorted(VALID_NFR_ASSESSMENT_RESULTS))
+            )
+        if not rationale:
+            errors.append(f"{risk_type}: non-functional assessment requires refs or rationale")
+        if result == "covered":
+            if not re.search(r"\bRISK-\d+\b", rationale) or not re.search(
+                r"\bTP-\d+\b", rationale
+            ):
+                errors.append(
+                    f"{risk_type}: covered assessment requires both RISK-### and TP-###"
+                )
+
+    for risk_type in PLATFORM_NFR_TYPES:
+        if risk_type not in seen:
+            errors.append(f"missing non-functional assessment row: {risk_type}")
     return errors
 
 

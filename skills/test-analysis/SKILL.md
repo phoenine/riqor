@@ -96,6 +96,22 @@ Risk Type selects candidate analysis dimensions and techniques; it does not
 automatically create Test Points or Test Cases. Derive coverage from the risk's
 reachable trigger, impact, doubts, and evidence.
 
+For platform or shared-framework scope involving authentication, authorization,
+sessions, tenant context, routing, shared configuration, or common client
+infrastructure, explicitly assess `security`, `availability_resilience`,
+`performance`, and `compatibility`. For each category, either link justified
+Risk / Test Point IDs or record `not_applicable` with a scope-specific reason.
+Assessment is mandatory; generating coverage remains conditional on reachable,
+evidence-backed risk.
+
+Do not invent performance thresholds, supported browsers, viewports, storage
+modes, or failure-injection capabilities. Source concrete targets from the
+Project Profile or authoritative project evidence. Without a normative target,
+write a characterization objective, Risk, Coverage Gap, or Open Question rather
+than a pass/fail requirement. Route concurrency, timeout, partial-failure, and
+recovery checks to API, component, integration, or fault-injection surfaces when
+manual UI execution cannot produce or observe them reliably.
+
 When writing a `test_points` artifact, start from
 `templates/artifacts/test-points.md.tmpl` and keep `analysis_depth` explicit.
 

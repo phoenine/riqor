@@ -74,7 +74,11 @@ python3 tools/run_state.py \
    behavior.
 
 5. Split, merge, and deduplicate cases so each case validates one primary
-   business outcome.
+   business outcome. Prefer one behavior model plus `DATA-###` parameter rows
+   over one TC per input value, but merge only when setup, operation path,
+   observation surface, expected result, assertion basis, priority, and
+   traceability are materially the same. Every parameter row must be separately
+   executable and reportable.
 
 6. Create the file from template (never blank files, never `runs/`). **Machine
    validation rejects hand-written Markdown** — the file must have YAML
@@ -109,6 +113,9 @@ python3 tools/copy_template.py \
   acceptance item that acts as the coverage authority.
 - No duplicate case covers the same setup, action, and expected result without
   a reason.
+- Every expected result has a matching `断言依据` entry in `<type> | <source>`
+  form. Tester-derived checks remain `risk_derived` or `hypothesis`; they are
+  not presented as requirement assertions.
 - Unplanned `TC without TP` is preserved only when justified by historical,
   bug-regression, acceptance, or coverage-gap evidence.
 
@@ -190,6 +197,10 @@ deliverable Markdown under `runs/`.
 - Do not write cases for unreachable or unobservable behavior.
 - Do not use vague expected results such as “system works normally” or
   “data is correct”; expected results must be observable and deterministic.
+- Do not optimize for TC count or create one case per data value when a
+  reportable parameter set proves the same behavior model.
+- Do not label tester-derived security, reliability, performance, or
+  compatibility hypotheses as PRD requirements.
 - Do not write deliverable Markdown under `runs/`; `runs/` is for state only.
 - Do not sync cases to a test-management platform; use `zentao-sync`.
 - Do not execute automation; use `automation`.

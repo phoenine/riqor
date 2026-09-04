@@ -602,11 +602,23 @@ unsupported reference 阻断。
 用例必须：
 
 - 一条用例只验证一个清晰目标。
+- 不以用例数量作为质量目标；相同前置条件、操作路径、观察面、预期结果、断言依据、
+  优先级和追溯关系的数据条件应合并为一个行为用例和多个 `DATA-###` 参数行，每行可
+  独立执行和记录结果。
 - 前置条件明确。
 - 步骤可执行。
 - 预期结果可观察、可判定。
+- 每条预期结果记录 `requirement`、`business_rule`、`contract`、`risk_derived` 或
+  `hypothesis` 类型及精确来源。测试人员推导出的安全或性能检查不得伪装成 PRD 断言；
+  失败后按来源判定为候选实现缺陷、需求缺口、风险发现或改进建议，而不是自动全部建 Bug。
 - 映射需求、风险和测试点。
 - 明确自动化适配性。
+
+平台或共享框架涉及认证、授权、会话、租户、路由、共享配置或公共客户端基础设施时，
+Test Analysis 必须显式评估 Security、Availability / Resilience、Performance 和
+Compatibility，并为每类记录已覆盖的 Risk / Test Point、Coverage Gap 或带理由的
+`not_applicable`。这是一项覆盖评估，不是固定用例清单；浏览器矩阵、性能阈值、环境和
+故障注入能力必须来自 Project Profile 或权威项目证据。
 
 ### 9.7 用例平台同步
 

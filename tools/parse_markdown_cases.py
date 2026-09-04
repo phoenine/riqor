@@ -12,7 +12,10 @@ from typing import Any
 
 CASE_HEADING_RE = re.compile(r"^#{2,3}\s+(TC-\d+)[:：]\s*(.+?)\s*$", re.MULTILINE)
 NUMBERED_ITEM_RE = re.compile(r"^\s*(\d+)[.、]\s*(.+?)\s*$")
-FIELD_RE = re.compile(r"^(优先级|外部用例ID|禅道ID|用例类型|前置条件|测试数据|测试步骤|操作步骤|预期结果|备注|可追溯关系)\s*(?:[:：]\s*(.*))?$")
+FIELD_RE = re.compile(
+    r"^(优先级|外部用例ID|禅道ID|用例类型|前置条件|测试数据|测试步骤|"
+    r"操作步骤|预期结果|断言依据|备注|可追溯关系)\s*(?:[:：]\s*(.*))?$"
+)
 REF_RE = re.compile(
     r"\b(?:[A-Z][A-Z0-9]*-)?(?:REQ|RISK|TP|TC|BR|Q|AUTO|RUN|BUG|DATA)-\d+\b"
 )
@@ -78,10 +81,22 @@ def _parse_case_block(block: str, start_line: int, source_path: Path, source_roo
     test_data = "\n".join(fields.get("测试数据", [])).strip()
     steps = _parse_indexed_items(fields.get("测试步骤", fields.get("操作步骤", [])), "steps", warnings)
     expects = _parse_indexed_items(fields.get("预期结果", []), "expects", warnings)
+    assertion_basis = _parse_assertion_basis(
+        fields.get("断言依据", []), warnings, errors
+    )
     remark = "\n".join(fields.get("备注", []) + fields.get("可追溯关系", [])).strip()
 
     if steps and expects and len(steps) != len(expects):
         errors.append(f"steps/expects count mismatch: {len(steps)} != {len(expects)}")
+    if expects and len(expects) != len(assertion_basis):
+        errors.append(
+            f"expects/assertion basis count mismatch: {len(expects)} != "
+            f"{len(assertion_basis)}"
+        )
+    elif expects and [item["index"] for item in expects] != [
+        item["index"] for item in assertion_basis
+    ]:
+        errors.append("expected result and assertion basis indices must match")
     for required, value in (
         ("优先级", priority),
         ("外部用例ID", external_case_id),
@@ -106,8 +121,11 @@ def _parse_case_block(block: str, start_line: int, source_path: Path, source_roo
         "test_data": test_data,
         "steps": steps,
         "expects": expects,
+        "assertion_basis": assertion_basis,
         "remark": remark,
-        "refs": _extract_refs(remark),
+        "refs": _extract_refs(
+            "\n".join([remark, *(item["source"] for item in assertion_basis)])
+        ),
         "raw": block,
         "warnings": warnings,
         "errors": errors,
@@ -156,6 +174,57 @@ def _parse_indexed_items(lines: list[str], field_name: str, warnings: list[str])
         elif line.strip():
             warnings.append(f"unparsed {field_name} line: {line.strip()}")
     return items
+
+
+VALID_ASSERTION_TYPES = frozenset(
+    {"requirement", "business_rule", "contract", "risk_derived", "hypothesis"}
+)
+
+
+def _parse_assertion_basis(
+    lines: list[str], warnings: list[str], errors: list[str]
+) -> list[dict[str, Any]]:
+    items = _parse_indexed_items(lines, "assertion basis", warnings)
+    parsed: list[dict[str, Any]] = []
+    for item in items:
+        parts = [part.strip() for part in item["text"].split("|", maxsplit=1)]
+        if len(parts) != 2 or not all(parts):
+            errors.append(
+                f"assertion basis {item['index']} must use '<type> | <source>'"
+            )
+            continue
+        assertion_type, source = parts
+        if assertion_type not in VALID_ASSERTION_TYPES:
+            errors.append(
+                f"assertion basis {item['index']} type must be one of: "
+                + ", ".join(sorted(VALID_ASSERTION_TYPES))
+            )
+        source_refs = REF_RE.findall(source)
+        required_kind = {
+            "requirement": "REQ",
+            "business_rule": "BR",
+        }.get(assertion_type)
+        if required_kind and not any(_ref_kind(ref) == required_kind for ref in source_refs):
+            errors.append(
+                f"assertion basis {item['index']} type {assertion_type} requires "
+                f"a {required_kind}-### source"
+            )
+        if assertion_type in {"risk_derived", "hypothesis"} and not any(
+            _ref_kind(ref) in {"RISK", "TP", "Q"} for ref in source_refs
+        ):
+            errors.append(
+                f"assertion basis {item['index']} type {assertion_type} requires "
+                "a RISK-, TP-, or Q-### source"
+            )
+        parsed.append(
+            {
+                "index": item["index"],
+                "type": assertion_type,
+                "source": source,
+                "refs": source_refs,
+            }
+        )
+    return parsed
 
 
 def _extract_refs(text: str) -> dict[str, list[str]]:

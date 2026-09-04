@@ -50,6 +50,11 @@ validation:
 1. 开启过滤后周期数不大于关闭时。
 2. 至少一个机型周期数减少。
 
+断言依据：
+
+1. contract | BUG-1649 回归验收约定
+2. contract | BUG-1649 回归验收约定
+
 备注：
 """
 
@@ -151,6 +156,67 @@ class ValidateTestCasesTests(unittest.TestCase):
             )
             errors = validate_test_cases.validate_test_case_file(path)
             self.assertTrue(any("steps/expects count mismatch" in error for error in errors), errors)
+
+    def test_expected_results_require_matching_assertion_basis(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cases.md"
+            path.write_text(
+                VALID_CASE.replace(
+                    "2. contract | BUG-1649 回归验收约定",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = validate_test_cases.validate_test_case_file(path)
+
+            self.assertTrue(
+                any("expects/assertion basis count mismatch" in error for error in errors),
+                errors,
+            )
+
+    def test_assertion_basis_type_and_source_are_validated(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cases.md"
+            path.write_text(
+                VALID_CASE.replace(
+                    "1. contract | BUG-1649 回归验收约定",
+                    "1. requirement | BUG-1649",
+                ).replace(
+                    "2. contract | BUG-1649 回归验收约定",
+                    "2. tester_guess | RISK-024",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = validate_test_cases.validate_test_case_file(path)
+
+            self.assertTrue(any("requires a REQ-### source" in error for error in errors), errors)
+            self.assertTrue(any("type must be one of" in error for error in errors), errors)
+
+    def test_assertion_basis_is_parsed_and_contributes_refs(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cases.md"
+            path.write_text(
+                VALID_CASE.replace(
+                    "1. contract | BUG-1649 回归验收约定",
+                    "1. requirement | REQ-005",
+                ).replace(
+                    "2. contract | BUG-1649 回归验收约定",
+                    "2. hypothesis | RISK-024 / TP-043",
+                ),
+                encoding="utf-8",
+            )
+
+            case = parse_markdown_cases.parse_markdown_case_file(path)[0]
+
+            self.assertEqual(
+                [item["type"] for item in case["assertion_basis"]],
+                ["requirement", "hypothesis"],
+            )
+            self.assertEqual(case["refs"]["requirements"], ["REQ-005"])
+            self.assertEqual(case["refs"]["risks"], ["RISK-024"])
+            self.assertEqual(case["refs"]["test_points"], ["TP-043"])
 
     def test_test_data_field_is_parsed_separately(self):
         with TemporaryDirectory() as tmp:

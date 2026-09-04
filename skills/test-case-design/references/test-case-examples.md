@@ -31,6 +31,11 @@ Upstream TP: TP-001 Enabled status is visible after turning on the setting.
 
 1. 保存后该配置状态显示为“启用”。
 2. 刷新页面后该配置仍显示为“启用”。
+
+断言依据：
+
+1. risk_derived | TP-001
+2. risk_derived | TP-001
 ```
 
 ## BVA TP To TC
@@ -79,6 +84,11 @@ Upstream TP: TP-007 Sync rule priority across R1, R2, R3.
 
 1. 结果明细显示命中 R2。
 2. 一般值按 R2 对应同步词更新，且不显示 R1 或 R3 的命中结果。
+
+断言依据：
+
+1. risk_derived | TP-007
+2. risk_derived | TP-007
 ```
 
 ## State Transition TP To TC
@@ -108,6 +118,11 @@ Upstream TP: TP-011 Enabled -> Disabled transition.
 
 1. 配置状态显示为“停用”。
 2. 本次自动执行结果中不包含该配置。
+
+断言依据：
+
+1. risk_derived | TP-011
+2. risk_derived | TP-011
 ```
 
 ## Coverage Gap

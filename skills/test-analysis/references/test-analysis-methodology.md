@@ -170,7 +170,35 @@ impact, doubts, and evidence. For example, a `security` risk does not require
 enumeration, privilege bypass, and information leakage tests unless those
 failure modes are actually applicable.
 
-## 3.2 Risk Status
+## 3.2 Platform Non-functional Coverage Assessment
+
+When the scope is a platform or shared framework and touches authentication,
+authorization, session or token lifecycle, tenant context, routing, shared
+configuration, or common client infrastructure, assess these four categories:
+
+| Category | Representative questions |
+|---|---|
+| `security` | Can tokens, tenant context, redirects, authorization, untrusted content, or credentials be abused or disclosed? |
+| `availability_resilience` | What happens on timeout, partial failure, retry, duplicate requests, concurrent refresh, offline/online changes, or stale configuration? |
+| `performance` | Which user-visible or system-critical loads, routes, refreshes, or initialization paths need a normative target or characterization baseline? |
+| `compatibility` | Which supported clients, versions, viewports, storage/cookie modes, tabs, cache states, or network conditions can change behavior? |
+
+Record one outcome for every assessed category:
+
+- `covered`: link the corresponding `RISK-###` and `TP-###` IDs.
+- `gap`: explain what source, target, environment, or test surface is missing.
+- `not_applicable`: give a scope-specific reason; do not use it merely because
+  the category was not analyzed.
+
+This is an assessment gate, not a fixed test-suite generator. Concrete browser
+lists, performance thresholds, environments, and compatibility promises belong
+in the Project Profile or authoritative project evidence, not Core defaults.
+When a threshold is not normative, define characterization or investigation
+rather than an invented pass/fail assertion. When a failure cannot be triggered
+or observed from manual UI, choose an API, component, integration, automation,
+or fault-injection surface, or record a Coverage Gap.
+
+## 3.3 Risk Status
 
 Use one lifecycle status and keep decisions or evidence summaries in their own
 fields:
