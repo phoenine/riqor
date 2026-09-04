@@ -130,6 +130,10 @@ class CopyTemplateTests(unittest.TestCase):
                 "automation_classification",
                 "# 自动化分类记录",
             ),
+            "automation-implementation": (
+                "automation_implementation",
+                "# 自动化实现记录",
+            ),
         }
         with TemporaryDirectory() as tmp:
             for template, (artifact_type, heading) in expected.items():

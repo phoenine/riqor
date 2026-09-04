@@ -465,6 +465,19 @@ ARTIFACT_SPECS: dict[str, dict[str, Any]] = {
         "template": "automation-classification",
         "markers": ("# 自动化分类记录", "## 摘要", "## 用例分类", "## 可追溯关系"),
     },
+    "automation_implementation": {
+        "template": "automation-implementation",
+        "markers": (
+            "# 自动化实现记录",
+            "## 摘要",
+            "## 来源覆盖",
+            "## 生成文件",
+            "## 静态校验",
+            "## 执行边界",
+            "## 覆盖缺口",
+            "## 可追溯关系",
+        ),
+    },
 }
 
 TEMPLATED_ARTIFACT_TYPES = frozenset(ARTIFACT_SPECS) | frozenset({"test_cases"})

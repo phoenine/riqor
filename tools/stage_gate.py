@@ -108,7 +108,10 @@ PHASE_RULES: dict[tuple[str, str], dict[str, Any]] = {
     },
     ("feature-quality", "Optional Case Sync Or Generation"): {
         "optional": True,
-        "optional_artifact_types": ["automation_classification"],
+        "optional_artifact_types": [
+            "automation_classification",
+            "automation_implementation",
+        ],
         "require_note_prefixes": ["external_sync:"],
     },
     ("feature-quality", "Optional Case Execute"): {

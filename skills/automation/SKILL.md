@@ -32,6 +32,11 @@ product or framework.
 6. Record the command, revision, environment, result, and evidence in Run State
    and the relevant artifact.
 
+When API coverage needs a new YAML-driven pytest implementation and the Project
+Profile selects `rigorpath-api-test`, load `pytest-yaml-api`. It owns bootstrap,
+case generation, strict validation, and the `automation_implementation` record;
+this generic Skill continues to own classification and confirmation boundaries.
+
 ## Project extensions
 
 Load a project-specific automation Skill only when the Project Profile selects

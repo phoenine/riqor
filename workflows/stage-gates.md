@@ -38,7 +38,7 @@ Authoritative implementation: `tools/stage_gate.py` → `PHASE_RULES`.
 | feature-quality | Requirement Specification | `requirement-analysis`; artifact `requirement_spec`; knowledge |
 | feature-quality | Risk Analysis | `test-analysis`; artifact `risk_analysis`; knowledge; repository evidence |
 | feature-quality | Test Design | `test-analysis`, `test-case-design`; artifact `test_points`; test cases must cite ready test points; knowledge |
-| feature-quality | Optional Case Sync Or Generation | Optional; Project Profile integration Skill or `automation`; `external_sync:`, `automation_classification`, or skip |
+| feature-quality | Optional Case Sync Or Generation | Optional; Project Profile integration Skill, `automation`, or selected implementation Skill; `external_sync:`, `automation_classification`, `automation_implementation`, or skip |
 | feature-quality | Optional Case Execute | Optional; `automation` or `test-case-design`; `execution_record` or `data_injection:` or skip |
 | feature-quality | Optional Bug Report | Optional; `reporting`; `bug_report` or skip |
 | feature-quality | Optional Test Report | Optional; `reporting`; artifact `run_summary`; traceability or skip |

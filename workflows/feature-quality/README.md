@@ -22,11 +22,13 @@ track. Never write deliverables under `runs/`.
 | Test Design | `test-points` | `test_points` | `{root}test-points/<feature>-test-points.md` |
 | Test Design | `test-cases` | `test_cases` | `{root}test-cases/<feature>-test-cases.md` |
 | Optional Case Sync Or Generation | `automation-classification` | `automation_classification` | `{root}automation/<feature>-classification.md` |
+| Optional Case Sync Or Generation | `automation-implementation` | `automation_implementation` | `{root}automation/<feature>-implementation.md` |
 | Optional Case Execute | `execution-record` | `execution_record` | `{root}execution/<feature>-execution-record.md` |
 | Optional Bug Report | `bug-report` | `bug_report` | `{root}reports/<feature>-bug-report.md` |
 | Optional Test Report | `run-summary` | `run_summary` | `{root}reports/<feature>-run-summary.md` |
 
-Validate: `validate_artifact.py`, `validate_test_cases.py` (cases), `stage_gate.py`.
+Validate: `validate_artifact.py`, `validate_test_cases.py` (cases),
+`traceability_lint.py`, `stage_gate.py`.
 
 ## Lazy-load phase docs
 

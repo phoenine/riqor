@@ -1,0 +1,18 @@
+# {{PROJECT_NAME}}
+
+Generated API automation adapter using `rigorpath-api-test` {{RUNTIME_VERSION}}.
+
+Validate contracts without contacting an API:
+
+```bash
+rigorpath-api-test validate testcases
+```
+
+Execute after setting the declared environment:
+
+```bash
+API_BASE_URL=https://api.example.test pytest -q
+```
+
+Malformed cases fail collection. Missing `API_BASE_URL` skips execution with an
+explicit reason. Do not commit credentials.

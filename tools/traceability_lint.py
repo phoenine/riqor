@@ -15,7 +15,7 @@ from paths import AGENT_NEXT_ROOT, resolve_managed_repo_path, resolve_repo_path 
 
 
 INTERNAL_ID_RE = re.compile(
-    r"(?<![A-Z0-9_-])(?:REQ|RISK|TP|TC|BR|Q)-\d+(?![A-Z0-9_-])"
+    r"(?<![A-Z0-9_-])(?:REQ|RISK|TP|TC|AUTO|BR|Q)-\d+(?![A-Z0-9_-])"
 )
 UNSUPPORTED_RA_RE = re.compile(r"(?<![A-Z0-9_-])RA-\d+(?![A-Z0-9_-])")
 HEADING_DEFINITION_PATTERNS = {
@@ -25,6 +25,7 @@ HEADING_DEFINITION_PATTERNS = {
 }
 TABLE_DEFINITION_PATTERNS = {
     "requirement_spec": re.compile(r"^\|\s*((?:BR|Q)-\d+)\s*\|", re.MULTILINE),
+    "automation_implementation": re.compile(r"^\|\s*(AUTO-\d+)\s*\|", re.MULTILINE),
 }
 REFERENCE_SECTION_HEADINGS = {
     "requirement_spec": ("可追溯关系",),
@@ -35,14 +36,19 @@ REFERENCE_SECTION_HEADINGS = {
         "风险覆盖",
         "测试点列表",
         "复杂度辅助分析",
+        "非功能覆盖评估",
         "覆盖缺口",
         "可追溯关系",
     ),
+    "automation_implementation": ("来源覆盖", "可追溯关系"),
 }
 REFERENCE_FIELD_PATTERNS = {
     "requirement_spec": (re.compile(r"^\*\*来源定位\*\*[：:].*$", re.MULTILINE),),
     "risk_analysis": (re.compile(r"^\*\*来源\*\*[：:].*$", re.MULTILINE),),
-    "test_cases": (re.compile(r"^可追溯关系\s*[：:].*$", re.MULTILINE),),
+    "test_cases": (
+        re.compile(r"^可追溯关系\s*[：:].*$", re.MULTILINE),
+        re.compile(r"^断言依据\s*[：:].*$", re.MULTILINE),
+    ),
 }
 
 

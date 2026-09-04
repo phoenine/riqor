@@ -286,6 +286,11 @@ repositories:
       capabilities: [web]
 
 integrations:
+  api_automation:
+    skill: pytest-yaml-api
+    config:
+      runtime: rigorpath-api-test
+      runtime_version: 0.1.0
   requirement_tracker:
     skill: zentao-sync
   issue_tracker:
@@ -659,6 +664,11 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 - 记录文件、命令、结果和未验证项。
 - 不自动向保护分支提交或推送。
 
+内置的 `pytest-yaml-api` 是 `api-automation` slot 的一个通用实现：它生成薄 pytest
+项目与可追溯 YAML case，并复用独立版本化的 `rigorpath-api-test` 运行时。Core 不包含
+产品端点、认证或租户逻辑；每个 `AUTO-###` 必须保留 `TP-###`、`TC-###` 及断言来源，
+静态校验失败或存在悬空引用时不得进入执行阶段。性能/Locust 不属于该实现的默认 MVP。
+
 ### 9.10 测试执行与报告
 
 执行记录必须区分：
@@ -924,6 +934,11 @@ Project Profile 将 slot 映射到具体 Skill：
 
 ```yaml
 integrations:
+  api_automation:
+    skill: pytest-yaml-api
+    config:
+      runtime: rigorpath-api-test
+      runtime_version: 0.1.0
   test_management:
     skill: zentao-sync
     capabilities: [read_cases, preview_sync, create_cases, update_cases]

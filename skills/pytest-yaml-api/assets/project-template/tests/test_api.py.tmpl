@@ -1,0 +1,12 @@
+import os
+
+import pytest
+from rigorpath_api_test import ApiSession
+
+
+def test_api_case(api_case):
+    base_url = os.environ.get("API_BASE_URL")
+    if not base_url:
+        pytest.skip("API_BASE_URL is required for API execution")
+    with ApiSession(base_url) as session:
+        session.execute(api_case)

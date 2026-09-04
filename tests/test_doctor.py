@@ -15,7 +15,7 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(report.errors, [])
         self.assertIn("project shop-platform", report.checks)
         self.assertIn("capabilities 17", report.checks)
-        self.assertIn("artifact templates 15", report.checks)
+        self.assertIn("artifact templates 16", report.checks)
 
 
 if __name__ == "__main__":

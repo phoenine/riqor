@@ -84,6 +84,14 @@ class TraceabilityLintTests(unittest.TestCase):
                     "test-cases.md",
                     "# 测试用例\n### TC-001：Login\n可追溯关系：TP-001 / REQ-001\n",
                 ),
+                "automation_implementation": (
+                    "automation.md",
+                    "# 自动化实现记录\n## 来源覆盖\n"
+                    "| AUTO ID | TC | DATA | TP | REQ / BR / RISK / Q | Assertion Type | 说明 |\n"
+                    "|---|---|---|---|---|---|---|\n"
+                    "| AUTO-001 | TC-001 | none | TP-001 | REQ-001 | requirement | login |\n"
+                    "## 可追溯关系\n| TC-001 | AUTO-001 | automated_by |\n",
+                ),
             }
             artifacts = []
             for artifact_type, (filename, content) in files.items():
@@ -102,6 +110,7 @@ class TraceabilityLintTests(unittest.TestCase):
                     {"from": "REQ-001", "to": "RISK-001", "relation": "drives"},
                     {"from": "RISK-001", "to": "TP-001", "relation": "covered_by"},
                     {"from": "TP-001", "to": "TC-001", "relation": "implemented_by"},
+                    {"from": "TC-001", "to": "AUTO-001", "relation": "automated_by"},
                 ],
             }
 
@@ -136,6 +145,30 @@ class TraceabilityLintTests(unittest.TestCase):
 
             self.assertTrue(any("RA-001 has no defined RA contract" in error for error in errors), errors)
             self.assertTrue(any("TP-999 NOT FOUND" in error for error in errors), errors)
+
+    def test_run_lint_rejects_dangling_auto_reference(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "outputs/demo"
+            output.mkdir(parents=True)
+            cases = output / "test-cases.md"
+            cases.write_text(
+                "# 测试用例\n### TC-001：Login\n可追溯关系：AUTO-999\n",
+                encoding="utf-8",
+            )
+            state = {
+                "artifacts": [
+                    {
+                        "id": "TC-SET-001",
+                        "type": "test_cases",
+                        "path": cases.relative_to(root).as_posix(),
+                    }
+                ]
+            }
+
+            errors = traceability_lint.lint_run_state_traceability(state, repo_root=root)
+
+            self.assertTrue(any("AUTO-999 NOT FOUND" in error for error in errors), errors)
 
 
 if __name__ == "__main__":

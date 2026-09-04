@@ -1,0 +1,25 @@
+schema_version: 1
+suite: example-health
+required_env:
+  - API_BASE_URL
+cases:
+  - id: AUTO-001
+    title: Example health contract
+    source:
+      requirements: [REQ-001]
+      business_rules: []
+      questions: []
+      risks: []
+      test_points: [TP-001]
+      test_cases: [TC-001]
+      data_rows: []
+    request:
+      method: GET
+      path: /health
+    assertions:
+      - type: contract
+        source: API contract GET /health
+        target: status
+        matcher: eq
+        expected: 200
+    side_effect: none

@@ -39,6 +39,10 @@ TEMPLATES = {
         "artifacts/automation-classification.md.tmpl",
         "automation_classification",
     ),
+    "automation-implementation": (
+        "artifacts/automation-implementation.md.tmpl",
+        "automation_implementation",
+    ),
     "release-scope": ("artifacts/release-scope.md.tmpl", "release_scope"),
 }
 
