@@ -28,7 +28,9 @@ before generating or changing YAML cases.
 2. For `bootstrap`, confirm that no declared API automation repository already
    provides the required capability. Read the runtime URL and immutable tag or
    commit from `integrations.api_automation.config`, preview the target, then run
-   `agent-next prepare-automation --project <profile> --classification <artifact>`.
+   `agent-next prepare-automation --project <profile> --classification-artifact
+   <id> --test-cases-artifact <id> --implementation-artifact <id> --run-id
+   <run>`.
    Core reads this Skill's `provider.yaml` and invokes the local scaffold plus
    install commands only when the classification contains an `A0/A1` API or
    hybrid case. Use `python3 scripts/scaffold_framework.py --project-profile

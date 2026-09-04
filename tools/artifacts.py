@@ -10,7 +10,7 @@ from typing import Any, Sequence
 from .artifact_frontmatter import ARTIFACT_SPECS
 from .contracts import validate_artifact
 from .copy_template import TEMPLATES, create_artifact_from_template, register_artifact
-from .inventory import artifact_root_for, load_inventory
+from .inventory import ArtifactRecord, artifact_root_for, load_inventory
 from .planner import CapabilityRecord
 from .run_state import load_state as load_run_state, sha256_file
 from .stage_gate import check_state, write_gate_result
@@ -48,6 +48,30 @@ class GateResult:
 
 class ArtifactActionError(ValueError):
     """Raised when a local artifact lifecycle action is unsafe or invalid."""
+
+
+def attach_artifact_inputs(
+    *, root: Path, run_id: str, records: Sequence[ArtifactRecord]
+) -> None:
+    """Expose ready inventory inputs to one Run State for gates and traceability."""
+    state_path = root.resolve() / "runs" / run_id / "state.json"
+    for record in records:
+        if record.effective_status != "ready":
+            raise ArtifactActionError(
+                f"run input artifact is not ready: {record.artifact_id}@{record.revision}"
+            )
+        registered = register_artifact(
+            state_path=state_path,
+            artifact_id=record.artifact_id,
+            artifact_type=record.artifact_type,
+            destination=Path(str(record.metadata["content_path"])),
+            producer_phase="Registered Ready Input",
+            source_artifacts=list(record.metadata["source_artifacts"]),
+            evidence=[],
+            validation_status="passed",
+        )
+        if not registered:
+            raise ArtifactActionError(f"run state does not exist: runs/{run_id}/state.json")
 
 
 SCOPE_DIRECTORIES = {

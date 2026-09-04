@@ -23,6 +23,7 @@ KNOWLEDGE_DIRECTORIES = (
     "test-strategy",
     "operations",
 )
+WORKSPACE_RUNTIME_DIRECTORIES = ("config", "schemas", "skills", "templates", "workflows")
 
 
 class InitError(ValueError):
@@ -95,6 +96,18 @@ def _render_template(name: str, values: dict[str, str]) -> str:
     for key, value in values.items():
         template = template.replace("{{" + key + "}}", value)
     return template
+
+
+def _seed_workspace_runtime(root: Path) -> list[Path]:
+    created: list[Path] = []
+    for name in WORKSPACE_RUNTIME_DIRECTORIES:
+        source = REPOSITORY_ROOT / name
+        destination = root / name
+        if destination.exists():
+            continue
+        shutil.copytree(source, destination)
+        created.append(destination)
+    return created
 
 
 def _relative_source(root: Path, source: Path) -> str:
@@ -208,7 +221,9 @@ def init_project(
 
     created_knowledge = False
     created_profile = False
+    created_runtime: list[Path] = []
     try:
+        created_runtime = _seed_workspace_runtime(root)
         knowledge_root.mkdir(parents=True, exist_ok=False)
         created_knowledge = True
         for directory in KNOWLEDGE_DIRECTORIES:
@@ -244,6 +259,8 @@ def init_project(
             profile_path.unlink(missing_ok=True)
         if created_knowledge:
             shutil.rmtree(knowledge_root)
+        for directory in reversed(created_runtime):
+            shutil.rmtree(directory)
         raise InitError(f"cannot initialize project: {exc}") from exc
 
     return InitResult(

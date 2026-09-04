@@ -4,8 +4,18 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from .artifacts import ArtifactActionError, gate_artifact, scaffold_artifact
-from .automation_prepare import AutomationPrepareError, prepare_api_automation
+from .artifacts import (
+    ArtifactActionError,
+    attach_artifact_inputs,
+    gate_artifact,
+    scaffold_artifact,
+)
+from .automation_prepare import (
+    AutomationPrepareError,
+    prepare_api_automation,
+    render_automation_implementation,
+    select_automation_inputs,
+)
 from .bootstrap import InitError, init_project
 from .contracts import ContractError, load_yaml, validate_project_profile
 from .doctor import run_doctor
@@ -76,7 +86,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="prepare a Profile-selected automation project for eligible classified cases",
     )
     prepare_automation.add_argument("--project", required=True, type=Path)
-    prepare_automation.add_argument("--classification", required=True, type=Path)
+    prepare_automation.add_argument("--classification-artifact", required=True)
+    prepare_automation.add_argument("--test-cases-artifact", required=True)
+    prepare_automation.add_argument("--implementation-artifact", required=True)
+    prepare_automation.add_argument("--run-id", required=True)
+    prepare_automation.add_argument("--workflow", default="feature-quality")
+    prepare_automation.add_argument("--capability", default="automation-prepare")
     prepare_automation.add_argument("--repository-id")
     prepare_automation.add_argument(
         "--no-install",
@@ -305,31 +320,133 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
         assert profile is not None
         profile_path = args.project if args.project.is_absolute() else root / args.project
-        classification_path = (
-            args.classification
-            if args.classification.is_absolute()
-            else root / args.classification
-        )
         try:
+            selection = select_automation_inputs(
+                root=root,
+                profile=profile,
+                classification_artifact_id=args.classification_artifact,
+                test_cases_artifact_id=args.test_cases_artifact,
+                repository_id=args.repository_id,
+            )
+            registry = load_capabilities(root, workflow=args.workflow)
+            if registry.errors:
+                raise AutomationPrepareError(
+                    "invalid capability registry: " + "; ".join(registry.errors)
+                )
+            capability = next(
+                (
+                    item
+                    for item in registry.records
+                    if item.capability_id == args.capability
+                ),
+                None,
+            )
+            if capability is None:
+                raise AutomationPrepareError(
+                    f"capability {args.capability} does not exist in workflow {args.workflow}"
+                )
+            tracks = list(selection.classification.metadata["tracks"])
+            prepare_run(
+                root=root,
+                profile=profile,
+                capability=capability,
+                run_id=args.run_id,
+                tracks=tracks,
+            )
+            attach_artifact_inputs(
+                root=root,
+                run_id=args.run_id,
+                records=selection.run_inputs,
+            )
             result = prepare_api_automation(
                 root=root,
                 profile_path=profile_path,
                 profile=profile,
-                classification_path=classification_path,
-                repository_id=args.repository_id,
+                selection=selection,
                 install=not args.no_install,
             )
-        except (AutomationPrepareError, OSError) as exc:
+            if result.status == "skipped":
+                record_run_evidence(
+                    root=root,
+                    run_id=args.run_id,
+                    knowledge_used=[],
+                    knowledge_plan_status=None,
+                    knowledge_plan_summary=None,
+                    knowledge_plan_evidence=[],
+                    notes=[
+                        "optional_skip:Optional Case Sync Or Generation:"
+                        "no eligible A0/A1 API or hybrid cases"
+                    ],
+                )
+                print("SKIPPED no A0/A1 api or hybrid cases")
+                return 0
+            classification_reference = (
+                f"{selection.classification.artifact_id}@{selection.classification.revision}"
+            )
+            test_cases_reference = (
+                f"{selection.test_cases.artifact_id}@{selection.test_cases.revision}"
+            )
+            source_references = [test_cases_reference, classification_reference]
+            current_inventory = load_inventory(root, profile)
+            existing = next(
+                (
+                    item
+                    for item in current_inventory.records
+                    if item.artifact_id == args.implementation_artifact
+                ),
+                None,
+            )
+            if existing is not None:
+                if (
+                    existing.artifact_type != "automation_implementation"
+                    or existing.scope_id != selection.classification.scope_id
+                    or existing.metadata["source_artifacts"] != source_references
+                ):
+                    raise AutomationPrepareError(
+                        "existing implementation artifact does not match current inputs"
+                    )
+                print(
+                    f"OK automation project {result.status} "
+                    f"{result.destination.relative_to(root)}"
+                )
+                print(f"OK automation implementation reused {existing.path}")
+                print("CASES " + ", ".join(result.eligible_cases))
+                return 0
+            scaffold = scaffold_artifact(
+                root=root,
+                profile=profile,
+                capability=capability,
+                scope_id=selection.classification.scope_id,
+                artifact_id=args.implementation_artifact,
+                source_references=source_references,
+                tracks=tracks,
+                run_id=args.run_id,
+            )
+            assert selection.repository is not None
+            implementation = render_automation_implementation(
+                project_id=profile["project"]["id"],
+                repository_id=str(selection.repository["id"]),
+                runtime_revision=str(
+                    profile["integrations"]["api_automation"]["config"][
+                        "runtime_revision"
+                    ]
+                ),
+                result=result,
+                classification_reference=classification_reference,
+                test_cases_reference=test_cases_reference,
+                installed=not args.no_install,
+            )
+            (root / scaffold.content_path).write_text(implementation, encoding="utf-8")
+        except (AutomationPrepareError, ArtifactActionError, LifecycleError, OSError) as exc:
             print(f"BLOCKED {exc}")
             return 1
-        if result.status == "skipped":
-            print("SKIPPED no A0/A1 api or hybrid cases")
-            return 0
         assert result.destination is not None
         print(
             f"OK automation project {result.status} "
             f"{result.destination.relative_to(root)}"
         )
+        print(f"OK created automation implementation {scaffold.content_path}")
+        print("STATUS draft; review and gate the implementation artifact")
         print("CASES " + ", ".join(result.eligible_cases))
         return 0
     if args.command in {"inventory", "register", "plan", "run", "scaffold", "gate"}:

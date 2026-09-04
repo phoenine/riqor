@@ -134,12 +134,19 @@ reviewed, prepare the thin consumer project with:
 ```bash
 agent-next prepare-automation \
   --project config/projects/iot-ops.yaml \
-  --classification outputs/iot-ops/<scope>/automation/classification.md
+  --classification-artifact AUTO-CLASS-001 \
+  --test-cases-artifact TC-SUITE-001 \
+  --implementation-artifact AUTO-IMPL-001 \
+  --run-id automation-login
 ```
 
-Only `A0` or `A1` rows whose target is `api` or `hybrid` trigger preparation.
+Both input artifacts must already be registered and ready. Only `A0` or `A1`
+rows whose target is `api` or `hybrid` trigger preparation, and every eligible
+row must name the selected repository as its destination.
 The selected Skill provider creates `repositories/automation/iot-ops-api-test`
-and resolves its pinned dependency. Use `--no-install` for an offline scaffold.
+and resolves its pinned dependency. The command then creates a draft
+`automation_implementation` artifact in the same Run State. Use `--no-install`
+for an offline scaffold.
 
 Project knowledge is optional for users. `init` creates an empty internal
 context skeleton so a new project can start from only a description or PRD.

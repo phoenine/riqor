@@ -16,5 +16,14 @@ dependencies = [
 [project.scripts]
 agent-next = "tools.agent_next:main"
 
-[tool.setuptools]
-packages = ["tools"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools*", "config*", "schemas*", "skills*", "templates*", "workflows*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+config = ["*.yaml"]
+schemas = ["*.json"]
+skills = ["**/*.md", "**/*.yaml", "**/*.py", "**/*.tmpl"]
+templates = ["**/*.tmpl"]
+workflows = ["**/*.md", "**/*.yaml"]

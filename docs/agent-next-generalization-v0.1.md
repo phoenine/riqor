@@ -679,8 +679,10 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 `agent-next init --automation api` 从声明式 automation preset 生成上述 repository 与
 integration 配置，但初始化阶段不访问网络。完成并确认 `automation_classification` 后，
 `agent-next prepare-automation` 仅对 `A0/A1 + api/hybrid` 行调用 Profile 选择的 Skill
-provider；无符合条件的行明确 skip。Core 只读取 provider contract，不包含 pytest、端点、
-认证或产品规则。
+provider。命令只接受已登记且 ready 的分类与测试用例 Artifact，要求分类 Destination
+与实际仓库一致，并将准备结果登记为同一 Run State 下的 `automation_implementation`；
+无符合条件的行明确 skip。Core 只读取 provider contract，不包含 pytest、端点、认证或
+产品规则。
 
 ### 9.10 测试执行与报告
 

@@ -22,11 +22,16 @@ REQ/RISK/TP/TC/AUTO 追溯关系。
 ```bash
 python -m tools.agent_next prepare-automation \
   --project config/projects/<project-id>.yaml \
-  --classification <classification.md>
+  --classification-artifact <classification-id> \
+  --test-cases-artifact <test-cases-id> \
+  --implementation-artifact <implementation-id> \
+  --run-id <run-id>
 ```
 
-命令通过所选 Skill 的 `provider.yaml` 创建薄 consumer 项目，并默认执行其
-锁定依赖安装命令。初始化 Project Profile 本身不访问网络。无符合条件的分类时
-明确输出 `SKIPPED`。
+两个输入 Artifact 必须已登记且为 `ready`；分类正文还会再次通过类型 Validator，且
+符合条件行的 Destination 必须与 Profile 选中的仓库一致。命令通过所选 Skill 的
+`provider.yaml` 创建薄 consumer 项目，默认执行锁定依赖安装，并在同一 Run State
+登记 draft `automation_implementation`。初始化 Project Profile 本身不访问网络。
+无符合条件的分类时明确输出 `SKIPPED` 并记录 skip note。
 
 **Prev → Next:** Test Design → Optional Case Execute
