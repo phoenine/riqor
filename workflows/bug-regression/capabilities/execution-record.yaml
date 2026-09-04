@@ -7,7 +7,7 @@ requires:
   all: [regression_plan]
 optional: [test_cases]
 produces: [execution_record]
-skill: automation
+skill: test-execution
 side_effect: false
 action_class: local_write
 template: execution-record

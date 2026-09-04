@@ -690,6 +690,11 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 
 报告不得把 `blocked`、`skipped` 或 `not_run` 计为通过。报告结论必须从执行记录和现有证据计算，不能只使用生成文本中的主观判断。
 
+`test-execution` Skill 负责确认后的 runner 执行与证据归一化。对自动化执行，它从 JUnit
+XML 和 YAML case inventory 生成 `execution_record`，保留命令、退出码、revision、执行窗口
+及证据路径；没有 runner 结果的计划用例是 `not_run`，runner/collection 崩溃是
+`infrastructure_error`。Reporting 只消费规范化记录。
+
 ## 10. Bug Regression 工作流
 
 Bug Regression 的资产链为：
@@ -935,6 +940,7 @@ v0.1 复用 Agent-next 已有 Skill 体系。Workflow/Capability 声明所需 Sk
 - `case-management-sync`
 - `api-automation`
 - `web-automation`
+- `test-execution`
 - `execution-environment`
 - `reporting`
 

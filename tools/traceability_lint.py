@@ -42,6 +42,14 @@ REFERENCE_SECTION_HEADINGS = {
     ),
     "automation_implementation": ("来源覆盖", "可追溯关系"),
     "automation_classification": ("用例分类", "现有覆盖", "可追溯关系"),
+    "execution_record": (
+        "执行范围",
+        "自动化执行计划",
+        "自动化未执行项",
+        "执行结果",
+        "覆盖缺口与未执行范围",
+        "可追溯关系",
+    ),
 }
 REFERENCE_FIELD_PATTERNS = {
     "requirement_spec": (re.compile(r"^\*\*来源定位\*\*[：:].*$", re.MULTILINE),),

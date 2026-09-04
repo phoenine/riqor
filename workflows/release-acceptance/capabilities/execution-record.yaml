@@ -6,7 +6,7 @@ phase: Acceptance Execution
 requires:
   all: [acceptance_plan]
 produces: [execution_record]
-skill: automation
+skill: test-execution
 side_effect: false
 action_class: local_write
 template: execution-record

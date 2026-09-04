@@ -1,6 +1,6 @@
 ---
 name: automation
-description: Classify, plan, generate, validate, or execute API, Web, and hybrid test automation using repositories and commands declared by the active Project Profile.
+description: Classify, plan, generate, and validate API, Web, and hybrid test automation using repositories declared by the active Project Profile. Use test-execution for confirmed runner execution and evidence normalization.
 ---
 
 # automation
@@ -30,10 +30,10 @@ when classifying test cases or reviewing an existing classification.
    conventions.
 4. Produce an `automation_classification` or execution plan before changing an
    automation repository or running against a shared environment.
-5. Request confirmation immediately before repository mutation, shared
-   environment execution, or shared-data mutation.
-6. Record the command, revision, environment, result, and evidence in Run State
-   and the relevant artifact.
+5. Request confirmation immediately before repository mutation.
+6. Record implementation files, revision, validation, and remaining blockers in
+   Run State and the relevant artifact. Hand executable selectors and commands
+   to `test-execution`; do not interpret runner results here.
 
 When API coverage needs a new YAML-driven pytest implementation and the Project
 Profile selects `rigorpath-api-test`, load `pytest-yaml-api`. It owns bootstrap,
@@ -53,5 +53,6 @@ boundaries above.
   provides one.
 - Do not guess API routes from source names; verify the real client or network
   path.
-- Do not execute or mutate shared state without explicit confirmation.
+- Do not execute runners; use `test-execution` after implementation validation.
+- Do not mutate shared state without explicit confirmation.
 - Do not upload cases to a test-management system; use its selected sync Skill.

@@ -25,7 +25,7 @@ receipts, confirmations, and so on). The table below lists **phase-specific**
 machine rules only.
 
 The global gate runs `tools/traceability_lint.py` against current Run artifacts.
-Duplicate definitions, dangling `REQ/RISK/TP/TC/BR/Q` references, and undefined
+Duplicate definitions, dangling `REQ/RISK/TP/TC/AUTO/BR/Q` references, and undefined
 `RA` references fail closed.
 
 ### Machine Rules By Phase
@@ -39,7 +39,7 @@ Authoritative implementation: `tools/stage_gate.py` → `PHASE_RULES`.
 | feature-quality | Risk Analysis | `test-analysis`; artifact `risk_analysis`; knowledge; repository evidence |
 | feature-quality | Test Design | `test-analysis`, `test-case-design`; artifact `test_points`; test cases must cite ready test points; knowledge |
 | feature-quality | Optional Case Sync Or Generation | Optional; Project Profile integration Skill, `automation`, or selected implementation Skill; `external_sync:`, `automation_classification`, `automation_implementation`, or skip |
-| feature-quality | Optional Case Execute | Optional; `automation` or `test-case-design`; `execution_record` or `data_injection:` or skip |
+| feature-quality | Optional Case Execute | Optional; `test-execution` when cases run, plus `automation` or `test-case-design`; normalized `execution_record` or `data_injection:` or skip |
 | feature-quality | Optional Bug Report | Optional; `reporting`; `bug_report` or skip |
 | feature-quality | Optional Test Report | Optional; `reporting`; artifact `run_summary`; traceability or skip |
 | bug-regression | Bug Intake | `requirement-analysis`; `bug_intake:`; `bug_surface:`; knowledge |
@@ -48,12 +48,12 @@ Authoritative implementation: `tools/stage_gate.py` → `PHASE_RULES`.
 | bug-regression | Coverage Match | `test-case-design`, `automation`; artifact `coverage_match`; knowledge |
 | bug-regression | Decision Gate | `test-case-design`, `automation`; `decision_path:` |
 | bug-regression | Regression Plan | `test-case-design`, `automation`, `reporting`; artifact `regression_plan`; `regression_strategy:`; `test_cases` when `decision_path: supplement_cases` |
-| bug-regression | Execution | Optional; `automation` or `test-case-design`; `execution_record` or `data_injection:` or skip |
+| bug-regression | Execution | Optional; `test-execution` when cases run, plus `automation` or `test-case-design`; normalized `execution_record` or `data_injection:` or skip |
 | bug-regression | Regression Report | `reporting`; artifact `regression_report`; traceability |
 | release-acceptance | Release Baseline | `release-acceptance`; `release_baseline:`; `release_scope_tracks`; `environment.target`; knowledge; repository evidence |
 | release-acceptance | Scope Collection | `release-acceptance`, `requirement-analysis`, `test-analysis`; `release_scope:`; `release_scope_tracks`; knowledge |
 | release-acceptance | Acceptance Plan | `release-acceptance`, `test-case-design`, `automation`; artifact `acceptance_plan`; knowledge |
-| release-acceptance | Acceptance Execution | `automation`, `release-acceptance`; `automation_execution_plan:` or `automation_execution_skip:`; `execution_record` or `execution_evidence:` / `data_injection:` / `optional_skip:` |
+| release-acceptance | Acceptance Execution | `automation`, `release-acceptance`, and `test-execution` when cases run; `automation_execution_plan:` or `automation_execution_skip:`; normalized `execution_record` or `execution_evidence:` / `data_injection:` / `optional_skip:` |
 | release-acceptance | Release Decision | `release-acceptance`, `reporting`; artifact `acceptance_report`; `release_decision:`; traceability |
 | release-acceptance | Optional Post-release Observation | Optional; `release-acceptance`, `reporting`; or skip |
 
@@ -108,7 +108,7 @@ Every phase must satisfy these checks:
 | Repository evidence | Required repositories include path, revision, and files or commits actually inspected, or the phase records a `repository_not_applicable:` note when no repo was read. |
 | Environment checked | Required `.env` groups are checked before remote reads or execution. |
 | Artifacts tracked | Generated artifacts are listed with path and producing phase. |
-| Traceability valid | Internal `REQ/RISK/TP/TC/BR/Q` endpoints resolve in current Run artifacts; duplicate, dangling, and undefined `RA` references fail. |
+| Traceability valid | Internal `REQ/RISK/TP/TC/AUTO/BR/Q` endpoints resolve in current Run artifacts; duplicate, dangling, and undefined `RA` references fail. |
 | Confirmations tracked | Required user confirmations are recorded before side-effect actions. |
 
 ## Global Blocking Actions

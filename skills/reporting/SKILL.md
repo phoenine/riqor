@@ -41,6 +41,10 @@ Supporting outputs (sections within closeout artifacts or run state):
 - Traceability summary (`traceability[]` and/or run summary sections).
 - Follow-up owners and actions (run summary or `notes[]`).
 
+For automated runs, consume the normalized `execution_record` produced by
+`test-execution`. Do not reinterpret raw console output as authoritative or
+count `blocked`, `skipped`, `not_run`, or `infrastructure_error` as passed.
+
 ## Feature Testing Closeout
 
 In `feature-quality`, produce the closeout with the `run-summary` template only:

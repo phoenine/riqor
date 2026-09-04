@@ -32,7 +32,8 @@ The following Agent-new additions remain retained:
 - Scope-aware dependency planning
 
 R2 adds generic `requirement-analysis`, `test-analysis`, `test-case-design`,
-`automation`, `reporting`, `release-acceptance`, and `zentao-sync` Skills.
+`automation`, `test-execution`, `reporting`, `release-acceptance`, and
+`zentao-sync` Skills.
 Capabilities now reference their authoritative Workflow, Phase, and Skill.
 Product-specific automation and data rules belong in downstream Project
 Profiles or private extension packages, not this repository.

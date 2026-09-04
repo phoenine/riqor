@@ -16,6 +16,7 @@ GENERIC_SKILLS = (
     "test-case-design",
     "automation",
     "pytest-yaml-api",
+    "test-execution",
     "reporting",
     "release-acceptance",
     "zentao-sync",
