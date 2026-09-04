@@ -31,13 +31,67 @@ understanding and requirement specification; route test design to other skills.
 ## Outputs
 
 - Requirement specification or intake summary.
-- Requirement ID or local requirement handle.
+- Requirement Spec artifact ID plus stable Atomic Requirement IDs.
 - Open questions and missing inputs.
 - Knowledge-used log.
 - Knowledge update proposal and explicit user confirmation prompt when reusable
   terms, view rules, calculation rules, or workflow knowledge are missing or
   changed.
 - Source-read or repository-evidence log when code was inspected.
+
+## Source Fidelity
+
+Keep normative requirements separate from test-design derivations and
+implementation observations.
+
+- `source_explicit`: the behavior is stated by an authoritative requirement
+  source. Cite the exact document, section, record, or message.
+- `user_confirmed`: the user or another authorized decision maker explicitly
+  resolved or added the behavior. Cite the confirmation.
+- `assumption`: the behavior is not established by an authoritative source.
+  Keep it `pending`, link it to an open question, and do not present it as a
+  confirmed requirement.
+- Code, configuration, logs, and runtime observations are implementation
+  evidence. They may support a requirement or expose a difference, but they do
+  not become normative product requirements without an authoritative source or
+  explicit confirmation.
+- Boundaries, combinations, negative paths, and other coverage ideas derived by
+  test analysis belong in Risk Analysis or Test Points. Do not merge them into
+  a source requirement unless the source actually specifies the behavior.
+
+For every Atomic Requirement, record `依据类型`, `确认状态`, and an exact
+`来源定位`. Put source-versus-implementation conflicts in `实现差异 / 待确认设计点`.
+Do not synthesize conflicting sources into one apparently confirmed statement.
+
+## Atomic Requirements
+
+A Requirement Spec is one artifact for the active Feature or scope. Inside it,
+create as many Atomic Requirements as needed; never force one upstream feature
+record such as `F-SYS` into one `REQ`.
+
+An Atomic Requirement describes one independently judgeable obligation or
+observable outcome. Split requirements when behaviors have different triggers,
+actors, states, branches, outcomes, source locations, or confirmation status,
+or when one behavior could pass while another fails. Do not split individual
+test values or equivalent examples into requirements; those belong in Test
+Points and Test Cases.
+
+Use consecutive IDs such as `REQ-001`, `REQ-002`, and `REQ-003`. Preserve the
+upstream Feature ID in `来源定位` and the traceability table. Do not use nested
+IDs such as `REQ-001-01`, because downstream parsers and coverage records use
+the standard `REQ-###` reference form.
+
+Before completing the artifact, verify:
+
+- Every Atomic Requirement has one primary statement, basis type, confirmation
+  status, exact source locator, priority, and independently judgeable acceptance
+  criterion.
+- Every authoritative source rule is mapped to an Atomic Requirement or listed
+  explicitly as out of scope, conflicting, or pending.
+- Every downstream Risk and Test Point references the applicable Atomic
+  Requirement IDs rather than only the Requirement Spec artifact ID.
+- A confirmed requirement is based on `source_explicit` or `user_confirmed`,
+  never on `assumption` alone.
 
 ## Artifact Workflow
 
@@ -64,6 +118,9 @@ python3 tools/validate_artifact.py \
 ## Do Not
 
 - Do not invent missing business rules.
+- Do not combine source facts, implementation behavior, test-design derivations,
+  and assumptions into one requirement statement.
+- Do not group independently judgeable behaviors into one coarse requirement.
 - Do not write test points or test cases.
 - Do not update shared knowledge without a proposed update and confirmation.
 - Do not treat knowledge as source evidence.

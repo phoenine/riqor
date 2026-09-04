@@ -24,6 +24,10 @@ Every phase also inherits [Global Gates](#global-gates) (router skill, skill
 receipts, confirmations, and so on). The table below lists **phase-specific**
 machine rules only.
 
+The global gate runs `tools/traceability_lint.py` against current Run artifacts.
+Duplicate definitions, dangling `REQ/RISK/TP/TC/BR/Q` references, and undefined
+`RA` references fail closed.
+
 ### Machine Rules By Phase
 
 Authoritative implementation: `tools/stage_gate.py` → `PHASE_RULES`.
@@ -104,6 +108,7 @@ Every phase must satisfy these checks:
 | Repository evidence | Required repositories include path, revision, and files or commits actually inspected, or the phase records a `repository_not_applicable:` note when no repo was read. |
 | Environment checked | Required `.env` groups are checked before remote reads or execution. |
 | Artifacts tracked | Generated artifacts are listed with path and producing phase. |
+| Traceability valid | Internal `REQ/RISK/TP/TC/BR/Q` endpoints resolve in current Run artifacts; duplicate, dangling, and undefined `RA` references fail. |
 | Confirmations tracked | Required user confirmations are recorded before side-effect actions. |
 
 ## Global Blocking Actions

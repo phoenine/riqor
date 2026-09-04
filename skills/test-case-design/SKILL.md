@@ -96,6 +96,9 @@ python3 tools/copy_template.py \
 8. Review TP-to-TC coverage before marking the phase complete:
 
 - Every required TP has at least one TC or Coverage Gap.
+- Coverage summaries retain the Atomic Requirement IDs carried by upstream Test
+  Points, so partial coverage cannot be hidden behind a `REQ-SPEC-*` artifact or
+  upstream Feature ID.
 - Required decision rules, transitions, equivalence classes, boundary regions,
   and selected combinations are instantiated or recorded as gaps.
 - When upstream test points exist, every newly generated TC traces to at least
@@ -113,9 +116,11 @@ python3 tools/copy_template.py \
 
 ```bash
 python3 tools/validate_test_cases.py --case-file <path-to-case-file>
+python3 tools/traceability_lint.py --state runs/<run-id>/state.json
 ```
 
-10. Fix all validation errors; then run `stage_gate.py`.
+10. Fix all validation and traceability errors; then run `stage_gate.py`. Never
+    silently replace a dangling ID, even when a nearby ID looks likely.
 
 ## Coverage Sanity Check
 

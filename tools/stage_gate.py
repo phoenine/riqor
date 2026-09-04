@@ -31,6 +31,7 @@ from validate_test_cases import (  # noqa: E402
 )
 from validate_artifact import validate_artifact_file  # noqa: E402
 from artifact_frontmatter import ARTIFACT_SPECS  # noqa: E402
+from traceability_lint import lint_run_state_traceability  # noqa: E402
 
 
 ROUTER_SKILL = "agent-next"
@@ -576,6 +577,7 @@ def check_global_state(
     errors.extend(check_test_case_artifacts(state, repo_root=repo_root))
     if verify_live_evidence:
         errors.extend(check_recorded_reference_paths(state, repo_root=repo_root))
+        errors.extend(lint_run_state_traceability(state, repo_root=repo_root))
 
     return errors
 

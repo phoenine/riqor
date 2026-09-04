@@ -32,6 +32,8 @@
 - 边界值、等价类、判定表规则、状态迁移等具体数据在用例层选择。
 - 可追溯关系中必须记录至少一个 TP ID。Requirement、Risk、Bug、Acceptance
   等 ID 可以作为补充追溯，但不能替代 TP ID。
+- Requirement 补充追溯应使用 Atomic Requirement 的 `REQ-###`，不能只写
+  `REQ-SPEC-*` Artifact 或上游 Feature ID。
 - 如果发现 TP 的覆盖意图不完整，写为 `Coverage Gap`，不要直接新增超出 TP
   范围的用例。
 

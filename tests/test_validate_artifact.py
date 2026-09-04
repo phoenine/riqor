@@ -23,6 +23,23 @@ def complete(path: Path) -> None:
     path.write_text(text + "\nCompleted artifact content.\n", encoding="utf-8")
 
 
+def complete_requirement(path: Path) -> None:
+    text = re.sub(r"<[^>\n]+>", "completed", path.read_text(encoding="utf-8"))
+    text = text.replace("**依据类型**：completed", "**依据类型**：source_explicit")
+    text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+    path.write_text(text + "\nCompleted artifact content.\n", encoding="utf-8")
+
+
+def completed_risk_text() -> str:
+    text = (ROOT / "templates/artifacts/risk-analysis.md.tmpl").read_text(
+        encoding="utf-8"
+    )
+    text = re.sub(r"<[^>\n]+>", "completed", text)
+    return text.replace("**Risk Type**：completed", "**Risk Type**：security").replace(
+        "**状态**：completed", "**状态**：pending_validation"
+    ).replace("**等级**：completed", "**等级**：P1")
+
+
 class ValidateArtifactTests(unittest.TestCase):
     def test_copy_template_types_are_covered(self):
         copy_template = load_tool("copy_template")
@@ -79,13 +96,128 @@ class ValidateArtifactTests(unittest.TestCase):
                 expected_artifact_id="REQ-SPEC-001",
             )
             self.assertTrue(any("untouched managed template" in error for error in errors))
-            complete(destination)
+            complete_requirement(destination)
             errors = validate_artifact.validate_artifact_file(
                 destination,
                 expected_artifact_type="requirement_spec",
                 expected_artifact_id="REQ-SPEC-001",
             )
             self.assertEqual(errors, [])
+
+    def test_requirement_spec_rejects_missing_source_fidelity(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "requirement.md"
+            text = (ROOT / "templates/artifacts/requirement-spec.md.tmpl").read_text(
+                encoding="utf-8"
+            )
+            text = re.sub(r"<[^>\n]+>", "completed", text)
+            text = text.replace("**依据类型**：completed", "**依据类型**：source_explicit")
+            text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+            text = text.replace("**来源定位**：completed", "**来源定位**：")
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="requirement_spec"
+            )
+
+            self.assertIn("REQ-001: missing or empty field '来源定位'", errors)
+
+    def test_requirement_spec_rejects_duplicate_and_nested_requirement_ids(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "requirement.md"
+            text = (ROOT / "templates/artifacts/requirement-spec.md.tmpl").read_text(
+                encoding="utf-8"
+            )
+            text = re.sub(r"<[^>\n]+>", "completed", text)
+            text = text.replace("**依据类型**：completed", "**依据类型**：source_explicit")
+            text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+            atomic_section = text[text.index("### REQ-001 completed") : text.index("## 业务规则")]
+            text = text.replace("## 业务规则", atomic_section + "\n### REQ-001-01 nested\n\n## 业务规则")
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="requirement_spec"
+            )
+
+            self.assertIn("duplicate Atomic Requirement ID: REQ-001", errors)
+            self.assertTrue(any("nested requirement IDs" in error for error in errors), errors)
+
+    def test_requirement_spec_rejects_confirmed_assumption(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "requirement.md"
+            text = (ROOT / "templates/artifacts/requirement-spec.md.tmpl").read_text(
+                encoding="utf-8"
+            )
+            text = re.sub(r"<[^>\n]+>", "completed", text)
+            text = text.replace("**依据类型**：completed", "**依据类型**：assumption")
+            text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="requirement_spec"
+            )
+
+            self.assertTrue(any("assumption cannot be confirmed" in error for error in errors))
+
+    def test_risk_analysis_requires_typed_risk_details(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "risk.md"
+            path.write_text(completed_risk_text(), encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="risk_analysis"
+            )
+
+            self.assertEqual(errors, [])
+
+    def test_risk_analysis_rejects_invalid_type_status_and_level(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "risk.md"
+            text = completed_risk_text().replace(
+                "**Risk Type**：security", "**Risk Type**：ordinary"
+            ).replace(
+                "**状态**：pending_validation", "**状态**：waiting"
+            ).replace("**等级**：P1", "**等级**：high")
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="risk_analysis"
+            )
+
+            self.assertTrue(any("Risk Type must be one of" in error for error in errors))
+            self.assertTrue(any("状态 must be one of" in error for error in errors))
+            self.assertTrue(any("等级 must be one of" in error for error in errors))
+
+    def test_accepted_or_dismissed_risk_requires_decision_note(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "risk.md"
+            text = completed_risk_text().replace(
+                "**状态**：pending_validation", "**状态**：accepted"
+            ).replace("**决策备注**：completed", "**决策备注**：none")
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="risk_analysis"
+            )
+
+            self.assertIn("RISK-001: accepted risk requires a non-empty 决策备注", errors)
+
+    def test_risk_analysis_rejects_missing_evidence_and_duplicate_ids(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "risk.md"
+            text = completed_risk_text().replace(
+                "**代码证据**：completed", "**代码证据**："
+            )
+            risk_section = text[text.index("### RISK-001 completed") : text.index("## 覆盖范围审查")]
+            text = text.replace("## 覆盖范围审查", risk_section + "\n## 覆盖范围审查")
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="risk_analysis"
+            )
+
+            self.assertIn("duplicate Risk ID: RISK-001", errors)
+            self.assertIn("RISK-001: missing or empty field '代码证据'", errors)
 
     def test_regression_plan_from_template_passes(self):
         with TemporaryDirectory() as tmp:

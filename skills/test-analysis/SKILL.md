@@ -64,6 +64,38 @@ When producing test points or coverage focus:
 8. Use a coverage matrix only when traceability is many-to-many or hard to
    verify directly.
 
+Requirement coverage is evaluated against Atomic Requirement IDs inside the
+Requirement Spec, not only against the `REQ-SPEC-*` artifact or an upstream
+Feature ID. Map every Atomic Requirement to one or more Test Points or an
+explicit Coverage Gap; never mark a coarse parent as covered when only some of
+its rules are represented.
+
+## Risk Analysis Contract
+
+Use the risk matrix as a compact index and `## 风险详情` as the authoritative
+content for each risk. Every `RISK-###` detail must record:
+
+- Source, Primary Risk Type, optional Subtype, and optional Tags.
+- Stable Status and Level.
+- Problem Essence, Trigger Conditions, Impact, Doubts, and Validation Method.
+- Code Evidence when a product repository was provided and the risk makes a
+  source-backed claim. Cite repository, revision, path, symbol or line, and the
+  supported conclusion. If no repository was provided, write `not_available`;
+  never invent evidence.
+- A separate Decision Note when a risk is accepted or dismissed. Do not embed
+  lifecycle decisions inside the Status value.
+
+Select exactly one Primary Risk Type from the stable taxonomy in
+`references/test-analysis-methodology.md`. Use Subtype for the concrete failure
+mode and Tags for cross-cutting conditions such as timing, concurrency,
+permission, recovery, boundary, or regression. When several categories apply,
+choose the type that best describes the failure's primary nature and retain the
+others as Tags.
+
+Risk Type selects candidate analysis dimensions and techniques; it does not
+automatically create Test Points or Test Cases. Derive coverage from the risk's
+reachable trigger, impact, doubts, and evidence.
+
 When writing a `test_points` artifact, start from
 `templates/artifacts/test-points.md.tmpl` and keep `analysis_depth` explicit.
 
@@ -75,6 +107,25 @@ Test point fields are intentionally conditional:
 - Include Technique when using BVA, equivalence partitioning, decision table,
   state transition, scenario, combination, regression, or risk-based analysis.
 - Include Evidence when claiming source-backed behavior.
+
+## Traceability Lint
+
+Test Points are the coverage authority. Before presenting Risk Analysis or Test
+Design as complete, run the Run-scoped lint after artifact validation:
+
+```bash
+python3 tools/traceability_lint.py --state runs/<run-id>/state.json
+```
+
+The lint must resolve internal `REQ`, `RISK`, `TP`, `TC`, `BR`, and `Q`
+references against definitions in the current Run artifacts. Duplicate
+definitions and dangling references are errors; do not complete the phase or
+silently replace a missing ID. A likely nearby ID may be reported as a hint only.
+
+`RA-###` is not supported until the repository defines what RA represents and
+where it is declared. Treat an RA reference as an error instead of guessing its
+meaning. External platform identifiers such as Bug or task IDs remain evidence
+references and are not required to have local Markdown definitions.
 
 ## Bug Regression Deliverables
 
@@ -107,5 +158,10 @@ python3 tools/copy_template.py \
   represent distinct business risks; concrete values belong to test cases.
 - Do not write deliverable Markdown under `runs/`; `runs/` is for state only.
 - Do not claim source-backed risk without repository evidence.
+- Do not use multiple Primary Risk Types to avoid choosing the risk's main
+  failure domain; use Subtype and Tags for secondary characteristics.
+- Do not generate a fixed suite of tests from Risk Type alone.
+- Do not complete Risk Analysis or Test Design while Traceability Lint reports
+  duplicate, dangling, or unsupported internal references.
 - Do not design only happy paths.
 - Do not skip impact analysis for bug regression when change scope is available.

@@ -32,6 +32,9 @@ When upstream Test Points exist, they are the coverage authority:
 - Every newly generated TC must trace to at least one TP.
 - Requirement, risk, impact, bug, and acceptance IDs may be additional
   traceability, but they do not replace TP traceability.
+- Requirement references use the Atomic Requirement `REQ-###` IDs carried by
+  Test Points. A `REQ-SPEC-*` artifact or upstream Feature ID cannot hide
+  partially covered sibling requirements.
 - A TC that only traces to a requirement, risk, impact item, bug, or acceptance
   item is treated as `TC without TP` and reviewed as unplanned coverage.
 

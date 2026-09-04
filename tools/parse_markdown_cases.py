@@ -13,7 +13,9 @@ from typing import Any
 CASE_HEADING_RE = re.compile(r"^#{2,3}\s+(TC-\d+)[:：]\s*(.+?)\s*$", re.MULTILINE)
 NUMBERED_ITEM_RE = re.compile(r"^\s*(\d+)[.、]\s*(.+?)\s*$")
 FIELD_RE = re.compile(r"^(优先级|外部用例ID|禅道ID|用例类型|前置条件|测试数据|测试步骤|操作步骤|预期结果|备注|可追溯关系)\s*(?:[:：]\s*(.*))?$")
-REF_RE = re.compile(r"\b(?:[A-Z][A-Z0-9]*-)?(?:REQ|RISK|TP|TC|AUTO|RUN|BUG|DATA)-\d+\b")
+REF_RE = re.compile(
+    r"\b(?:[A-Z][A-Z0-9]*-)?(?:REQ|RISK|TP|TC|BR|Q|AUTO|RUN|BUG|DATA)-\d+\b"
+)
 
 
 def parse_markdown_case_file(path: Path, source_root: Path | None = None) -> list[dict[str, Any]]:
@@ -160,6 +162,8 @@ def _extract_refs(text: str) -> dict[str, list[str]]:
     refs = REF_RE.findall(text)
     return {
         "requirements": _dedupe([ref for ref in refs if _ref_kind(ref) == "REQ"]),
+        "business_rules": _dedupe([ref for ref in refs if _ref_kind(ref) == "BR"]),
+        "questions": _dedupe([ref for ref in refs if _ref_kind(ref) == "Q"]),
         "risks": _dedupe([ref for ref in refs if _ref_kind(ref) == "RISK"]),
         "test_points": _dedupe([ref for ref in refs if _ref_kind(ref) in {"TP", "TC"}]),
         "automation": _dedupe([ref for ref in refs if _ref_kind(ref) == "AUTO"]),

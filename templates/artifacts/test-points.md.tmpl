@@ -13,7 +13,9 @@ analysis_depth:
 
 ## 需求覆盖
 
-| 需求 ID | 测试点 ID | 覆盖说明 |
+每个 Atomic Requirement 必须单独列出；不得只引用 `REQ-SPEC-*` artifact 或上游 Feature ID。没有测试点的需求必须标记为 Coverage Gap，不得以父级 REQ 的整体“已覆盖”代替。
+
+| Atomic Requirement ID | 测试点 ID / Coverage Gap | 覆盖说明 |
 |---|---|---|
 
 ## 风险覆盖
@@ -33,3 +35,5 @@ analysis_depth:
 ## 覆盖缺口
 
 ## 可追溯关系
+
+完成前对当前 Run State 执行 `python3 tools/traceability_lint.py --state runs/RUN_ID/state.json`。任何重复定义或 dangling `REQ/RISK/TP/TC/BR/Q` 引用均为 ERROR；不得根据相近编号静默纠正。

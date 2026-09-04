@@ -4,8 +4,10 @@
 
 ## 风险矩阵
 
-| ID | 风险 | 等级 | 依据 | 影响 | 覆盖重点 |
-|---|---|---|---|---|---|
+风险矩阵是导航和摘要；`风险详情` 是单条风险内容的权威来源。两处的 Type、状态和等级必须一致。
+
+| ID | Atomic Requirement / 其他来源 | Risk Type | 状态 | 风险 | 等级 | 依据 | 影响 | 覆盖重点 |
+|---|---|---|---|---|---|---|---|---|
 
 ## 影响范围
 
@@ -15,9 +17,41 @@
 
 ## 覆盖重点
 
+Risk Type 只用于选择候选测试维度和技术；测试点仍须结合触发条件、影响、疑点与证据生成，不得按类型机械展开整套用例。
+
+## 风险详情
+
+### RISK-001 <风险标题>
+
+**来源**：<Atomic Requirement REQ-### / BUG-### / Change / Release / 精确来源>
+
+**Risk Type**：<functional | security | integration | data | state | configuration | compatibility | performance | availability_resilience | usability | observability>
+
+**Risk Subtype**：<具体失效模式；没有则填写 none>
+
+**Risk Tags**：<逗号分隔的横切标签，例如 timing, concurrency, permission；没有则填写 none>
+
+**状态**：<identified | pending_validation | validated | accepted | mitigated | closed | dismissed>
+
+**等级**：<P0 | P1 | P2 | P3>
+
+**问题本质**：<说明可能如何失效，不能只复述需求>
+
+**代码证据**：<repo@revision / path / symbol / line 与支撑结论；未提供代码库时填写 not_available>
+
+**触发条件**：<可达到该风险的状态、输入、入口或环境条件>
+
+**影响**：<对用户、业务、数据、安全、集成或可用性的具体后果>
+
+**疑点**：<尚未确认的事实或口径；没有则填写 none>
+
+**验证方式**：<可执行的验证策略和可观察结果，不写完整测试步骤>
+
+**决策备注**：<accepted / dismissed 时填写决策依据，其余可填写 none>
+
 ## 覆盖范围审查
 
-检查 Requirement / Risk / Condition / Test Point 是否存在断链、漏风险或覆盖缺口。不要在此匹配现有手工用例或自动化；Existing TC / Automation 匹配属于 `coverage_match`。
+检查 Atomic Requirement / Risk / Condition / Test Point 是否存在断链、漏风险或覆盖缺口。需求来源必须引用具体 `REQ-###`，不得只引用 `REQ-SPEC-*` artifact 或上游 Feature ID。不要在此匹配现有手工用例或自动化；Existing TC / Automation 匹配属于 `coverage_match`。
 
 | 来源 | 风险 | 条件 | 测试点 / 覆盖重点 | 审查结果 |
 |---|---|---|---|---|

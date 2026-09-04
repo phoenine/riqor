@@ -75,6 +75,16 @@ def complete_sections(path: Path) -> None:
     content = path.read_text(encoding="utf-8")
     content = re.sub(r"<[^>\n]+>", "completed", content)
     content = content.replace("TBD", "completed").replace("XXX", "001")
+    if "# 需求说明书" in content:
+        content = content.replace(
+            "**依据类型**：completed", "**依据类型**：source_explicit"
+        ).replace("**确认状态**：completed", "**确认状态**：confirmed")
+    if "# 风险分析" in content:
+        content = content.replace(
+            "**Risk Type**：completed", "**Risk Type**：functional"
+        ).replace("**状态**：completed", "**状态**：pending_validation").replace(
+            "**等级**：completed", "**等级**：P2"
+        )
     path.write_text(content + "\nCompleted artifact content.\n", encoding="utf-8")
 
 

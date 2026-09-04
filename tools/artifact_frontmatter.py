@@ -7,6 +7,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+try:
+    from .traceability_lint import lint_test_points_text
+except ImportError:  # Standalone tool loading adds tools/ directly to sys.path.
+    from traceability_lint import lint_test_points_text
+
 
 TEST_CASES_TEMPLATE_MARKERS = (
     "# 测试用例",
@@ -57,6 +62,70 @@ TEST_POINTS_HEADER_RE = re.compile(
     re.MULTILINE,
 )
 
+ATOMIC_REQUIREMENT_HEADING_RE = re.compile(
+    r"^###\s+(REQ-\d+)(?!-)\s+(.+?)\s*$",
+    re.MULTILINE,
+)
+NESTED_REQUIREMENT_HEADING_RE = re.compile(r"^###\s+REQ-\d+-\d+\b", re.MULTILINE)
+REQUIREMENT_FIELDS = (
+    "需求陈述",
+    "依据类型",
+    "确认状态",
+    "来源定位",
+    "优先级",
+    "验收口径",
+)
+VALID_REQUIREMENT_BASIS_TYPES = frozenset(
+    {"source_explicit", "user_confirmed", "assumption"}
+)
+VALID_REQUIREMENT_CONFIRMATION_STATUSES = frozenset(
+    {"confirmed", "pending", "conflict"}
+)
+RISK_HEADING_RE = re.compile(r"^###\s+(RISK-\d+)(?!-)\s+(.+?)\s*$", re.MULTILINE)
+NESTED_RISK_HEADING_RE = re.compile(r"^###\s+RISK-\d+-\d+\b", re.MULTILINE)
+RISK_FIELDS = (
+    "来源",
+    "Risk Type",
+    "Risk Subtype",
+    "Risk Tags",
+    "状态",
+    "等级",
+    "问题本质",
+    "代码证据",
+    "触发条件",
+    "影响",
+    "疑点",
+    "验证方式",
+    "决策备注",
+)
+VALID_RISK_TYPES = frozenset(
+    {
+        "functional",
+        "security",
+        "integration",
+        "data",
+        "state",
+        "configuration",
+        "compatibility",
+        "performance",
+        "availability_resilience",
+        "usability",
+        "observability",
+    }
+)
+VALID_RISK_STATUSES = frozenset(
+    {
+        "identified",
+        "pending_validation",
+        "validated",
+        "accepted",
+        "mitigated",
+        "closed",
+        "dismissed",
+    }
+)
+VALID_RISK_LEVELS = frozenset({"P0", "P1", "P2", "P3"})
+
 
 def _uses_new_test_points_template(text: str) -> bool:
     return any(
@@ -98,6 +167,135 @@ def validate_test_points_template_body(text: str) -> list[str]:
             "| ID | 测试点 | 优先级 | 维度 | 条件 | 技术 | 覆盖意图 | 依据 |"
         )
 
+    errors.extend(lint_test_points_text(text))
+
+    return errors
+
+
+def validate_requirement_spec_body(text: str) -> list[str]:
+    errors: list[str] = []
+    matches = list(ATOMIC_REQUIREMENT_HEADING_RE.finditer(text))
+
+    if NESTED_REQUIREMENT_HEADING_RE.search(text):
+        errors.append(
+            "nested requirement IDs are not supported; use consecutive Atomic "
+            "Requirement IDs such as REQ-001 and REQ-002"
+        )
+    if not matches:
+        errors.append("requirement_spec must contain at least one ### REQ-### heading")
+        return errors
+
+    seen: set[str] = set()
+    for index, match in enumerate(matches):
+        requirement_id = match.group(1)
+        if requirement_id in seen:
+            errors.append(f"duplicate Atomic Requirement ID: {requirement_id}")
+        seen.add(requirement_id)
+
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        section = text[match.end() : end]
+        values: dict[str, str] = {}
+        for field in REQUIREMENT_FIELDS:
+            field_match = re.search(
+                rf"^\*\*{re.escape(field)}\*\*[：:][ \t]*(.*?)[ \t]*$",
+                section,
+                re.MULTILINE,
+            )
+            if not field_match or not field_match.group(1).strip():
+                errors.append(f"{requirement_id}: missing or empty field {field!r}")
+                continue
+            values[field] = field_match.group(1).strip()
+
+        basis_type = values.get("依据类型")
+        if basis_type and basis_type not in VALID_REQUIREMENT_BASIS_TYPES:
+            errors.append(
+                f"{requirement_id}: 依据类型 must be one of: "
+                + ", ".join(sorted(VALID_REQUIREMENT_BASIS_TYPES))
+            )
+
+        confirmation_status = values.get("确认状态")
+        if (
+            confirmation_status
+            and confirmation_status not in VALID_REQUIREMENT_CONFIRMATION_STATUSES
+        ):
+            errors.append(
+                f"{requirement_id}: 确认状态 must be one of: "
+                + ", ".join(sorted(VALID_REQUIREMENT_CONFIRMATION_STATUSES))
+            )
+
+        if basis_type == "assumption" and confirmation_status == "confirmed":
+            errors.append(
+                f"{requirement_id}: assumption cannot be confirmed; use pending or "
+                "replace it with the explicit confirmation source"
+            )
+
+    return errors
+
+
+def validate_risk_analysis_body(text: str) -> list[str]:
+    errors: list[str] = []
+    matches = list(RISK_HEADING_RE.finditer(text))
+
+    if NESTED_RISK_HEADING_RE.search(text):
+        errors.append(
+            "nested risk IDs are not supported; use consecutive IDs such as "
+            "RISK-001 and RISK-002"
+        )
+    if not matches:
+        errors.append("risk_analysis must contain at least one ### RISK-### heading")
+        return errors
+
+    seen: set[str] = set()
+    for index, match in enumerate(matches):
+        risk_id = match.group(1)
+        if risk_id in seen:
+            errors.append(f"duplicate Risk ID: {risk_id}")
+        seen.add(risk_id)
+
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        section = text[match.end() : end]
+        values: dict[str, str] = {}
+        for field in RISK_FIELDS:
+            field_match = re.search(
+                rf"^\*\*{re.escape(field)}\*\*[：:][ \t]*(.*?)[ \t]*$",
+                section,
+                re.MULTILINE,
+            )
+            if not field_match or not field_match.group(1).strip():
+                errors.append(f"{risk_id}: missing or empty field {field!r}")
+                continue
+            values[field] = field_match.group(1).strip()
+
+        risk_type = values.get("Risk Type")
+        if risk_type and risk_type not in VALID_RISK_TYPES:
+            errors.append(
+                f"{risk_id}: Risk Type must be one of: "
+                + ", ".join(sorted(VALID_RISK_TYPES))
+            )
+
+        status = values.get("状态")
+        if status and status not in VALID_RISK_STATUSES:
+            errors.append(
+                f"{risk_id}: 状态 must be one of: "
+                + ", ".join(sorted(VALID_RISK_STATUSES))
+            )
+
+        level = values.get("等级")
+        if level and level not in VALID_RISK_LEVELS:
+            errors.append(
+                f"{risk_id}: 等级 must be one of: "
+                + ", ".join(sorted(VALID_RISK_LEVELS))
+            )
+
+        decision_note = values.get("决策备注", "").lower()
+        if status in {"accepted", "dismissed"} and decision_note in {
+            "",
+            "none",
+            "not_available",
+            "not_applicable",
+        }:
+            errors.append(f"{risk_id}: {status} risk requires a non-empty 决策备注")
+
     return errors
 
 
@@ -114,13 +312,20 @@ ARTIFACT_SPECS: dict[str, dict[str, Any]] = {
             "## 变更说明",
             "## 用户故事 / 场景卡片",
             "## 需求明细",
+            "### Source Fidelity 与原子化规则",
             "## 业务规则与边界条件",
             "## 可追溯关系",
         ),
     },
     "risk_analysis": {
         "template": "risk-analysis",
-        "markers": ("# 风险分析", "## 摘要", "## 风险矩阵", "## 可追溯关系"),
+        "markers": (
+            "# 风险分析",
+            "## 摘要",
+            "## 风险矩阵",
+            "## 风险详情",
+            "## 可追溯关系",
+        ),
     },
     "change_scope": {
         "template": "change-scope",
@@ -229,6 +434,30 @@ def validate_template_markers(text: str, markers: tuple[str, ...], *, template_n
 
 
 def validate_managed_artifact_body(text: str, artifact_type: str) -> list[str]:
+    if artifact_type == "requirement_spec":
+        spec = ARTIFACT_SPECS[artifact_type]
+        return [
+            *validate_template_markers(
+                text,
+                spec["markers"],
+                template_name=str(spec["template"]),
+            ),
+            *validate_requirement_spec_body(text),
+            *validate_artifact_completion(text, artifact_type),
+        ]
+
+    if artifact_type == "risk_analysis":
+        spec = ARTIFACT_SPECS[artifact_type]
+        return [
+            *validate_template_markers(
+                text,
+                spec["markers"],
+                template_name=str(spec["template"]),
+            ),
+            *validate_risk_analysis_body(text),
+            *validate_artifact_completion(text, artifact_type),
+        ]
+
     if artifact_type == "test_points":
         return [
             *validate_test_points_template_body(text),

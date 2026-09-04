@@ -177,6 +177,22 @@ class ValidateTestCasesTests(unittest.TestCase):
             self.assertEqual(refs["test_points"], ["TP-001"])
             self.assertEqual(refs["bugs"], ["BUG-1649"])
 
+    def test_business_rule_and_question_refs_are_extracted(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cases.md"
+            path.write_text(
+                VALID_CASE.replace(
+                    "可追溯关系：BUG-1649",
+                    "可追溯关系：TP-001 / BR-002 / Q-003",
+                ),
+                encoding="utf-8",
+            )
+
+            refs = parse_markdown_cases.parse_markdown_case_file(path)[0]["refs"]
+
+            self.assertEqual(refs["business_rules"], ["BR-002"])
+            self.assertEqual(refs["questions"], ["Q-003"])
+
     def test_stage_gate_requires_case_design_coverage_and_writing_rules_knowledge(self):
         with TemporaryDirectory() as tmp:
             case_path = Path(tmp) / "demo.md"

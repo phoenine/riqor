@@ -502,6 +502,17 @@ Feature Quality 是默认功能测试 Playbook，支持从不同输入成熟度�
 - 假设、冲突和未决问题
 - 来源引用
 
+一个 Feature / scope 生成一个需求规格 Artifact，但 Artifact 内应按可独立判定的
+义务或用户可观察结果拆成多个 Atomic Requirement。不同触发条件、入口、状态、分支、
+结果、来源或确认状态应拆分；测试数据与等价示例不作为独立需求。后续 Risk、Test Point
+和 Test Case 必须引用 Atomic Requirement ID，不能只引用需求规格 Artifact 或上游
+Feature ID 来声明整体覆盖。
+
+每个 Atomic Requirement 必须记录精确来源、依据类型和确认状态。权威来源明确陈述与
+用户明确确认可以形成已确认需求；测试设计推导不得写回为来源事实；代码、配置和运行
+现象只能作为实现证据或差异，未经权威来源或用户确认不得升级为规范性产品要求；假设
+必须保持待确认并关联开放问题。
+
 知识不足不应阻止草稿生成，但产物状态只能是 `draft`，并必须显示缺失信息对测试设计的影响。
 
 ### 9.3 需求 Review 与文档级风险
@@ -532,14 +543,35 @@ coverage_status: partial | complete
 
 ```yaml
 id: RISK-001
-statement: 并发提交可能导致重复订单
-impact: high
-likelihood: medium
+source: REQ-001
+type: security
+subtype: information_disclosure
+tags: [enumeration, negative_path]
+statement: 登录失败响应差异可能暴露账号存在性
+status: pending_validation
+level: P1
+problem_essence: 不同账号状态返回可区分响应
+trigger_conditions: [提交不存在账号或错误凭证]
+impact: 攻击者可能枚举有效账号
+doubts: [不同入口是否共用失败响应尚未确认]
+validation_method: 比较不同账号状态的响应、提示和时延
 evidence_level: document
 verification_status: unverified
 code_references: []
-confidence: medium
+decision_note: none
 ```
+
+`type` 是且仅是一个 Primary Risk Type；`subtype` 表示具体失效模式，`tags[]`
+表示 timing、concurrency、permission、boundary、recovery 等横切特征。通用类型包括
+`functional`、`security`、`integration`、`data`、`state`、`configuration`、
+`compatibility`、`performance`、`availability_resilience`、`usability` 和
+`observability`。Risk Type 只选择候选测试维度和技术，不能脱离触发条件、影响、疑点
+和证据机械生成测试点或测试用例。
+
+风险详情是单条风险内容的权威来源，风险矩阵只作摘要和导航。详情必须分别记录状态、
+等级、问题本质、触发条件、影响、疑点和验证方式；提供代码库且结论依赖源码时必须记录
+精确代码证据，未提供代码库时显式写 `not_available`。风险接受或驳回的决策依据写入
+`decision_note`，不能混入状态值。
 
 代码走读后逐项更新为 `verified`、`contradicted` 或继续保持 `unverified`，不得因为读取过仓库就整体标记为完整。
 
@@ -551,6 +583,17 @@ confidence: medium
 - 有代码：补充实现边界、依赖和回归影响。
 - 无代码：允许完成，但标记 `code_verification: not_performed`。
 - 无风险分析：Planner 应推荐先生成文档级风险；用户显式跳过时，测试点标记覆盖局限。
+
+Test Point 是覆盖设计的权威 Artifact，Test Case 只负责把 Test Point 实例化为
+测试数据、步骤和可观察结果。Requirement 定义规范事实，Risk 决定覆盖优先级；Test
+Point 不替代二者，但所有用例覆盖必须回到 Test Point 或显式 Coverage Gap。
+
+Stage Gate 必须在当前 Run 的 Artifact 上建立 `REQ/RISK/TP/TC/BR/Q` ID registry，
+检查重复定义以及正文和 Run State 中的 dangling reference。Test Points Artifact 还要
+在单文件 Gate 中验证 Requirement Coverage、Risk Coverage、辅助矩阵和追溯区域引用的
+每个 `TP-###` 都在测试点列表中定义。任何 dangling reference 都是 ERROR，不得按
+相近编号自动纠正。`RA-###` 在定义正式语义和声明位置之前不进入 registry，出现时按
+unsupported reference 阻断。
 
 ### 9.6 测试用例设计
 

@@ -397,6 +397,46 @@ class StageGateTests(unittest.TestCase):
             errors,
         )
 
+    def test_stage_gate_rejects_dangling_test_point_reference(self):
+        with TemporaryDirectory(dir=ROOT / "outputs") as tmp:
+            artifact_path = Path(tmp) / "test-points.md"
+            artifact_path.write_text(
+                """# 测试点
+
+## 摘要
+analysis_depth: standard
+## 测试空间
+## 需求覆盖
+## 风险覆盖
+| RISK-024 | TP-001 / TP-044 | coverage |
+## 测试点列表
+| ID | 测试点 | 优先级 | 维度 | 条件 | 技术 | 覆盖意图 | 依据 |
+|---|---|---|---|---|---|---|---|
+| TP-001 | Login | P1 | Functional | valid | Scenario | success | REQ-001 |
+## 复杂度辅助分析
+不适用。
+## 覆盖缺口
+## 可追溯关系
+""",
+                encoding="utf-8",
+            )
+            state = valid_state()
+            state["artifacts"] = [
+                {
+                    "id": "TP-SET-001",
+                    "type": "test_points",
+                    "path": artifact_path.relative_to(ROOT).as_posix(),
+                    "producer_phase": "Test Design",
+                    "source_artifacts": [],
+                    "evidence": [],
+                    "validation": {"status": "pending"},
+                }
+            ]
+
+            errors = stage_gate.check_state(state)
+
+            self.assertTrue(any("TP-044 NOT FOUND" in error for error in errors), errors)
+
     def test_artifact_path_rejects_absolute_and_parent_escape(self):
         for path in ("/tmp/report.md", "outputs/../report.md"):
             with self.subTest(path=path):

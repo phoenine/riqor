@@ -23,7 +23,7 @@ In Chinese:
 Convert upstream scope into:
 
 ```text
-Requirement / Bug / Change / Release
+Atomic Requirement / Bug / Change / Release
   -> Change Scope
   -> Risk Analysis
   -> Test Dimensions
@@ -112,7 +112,7 @@ aid. Select the aid that matches the risk:
 - Multi-condition business rule -> Decision Table.
 - State lifecycle -> State Transition Model.
 - Parameter interaction -> Combination Analysis.
-- Many-to-many Requirement / Risk / Condition / Test Point traceability ->
+- Many-to-many Atomic Requirement / Risk / Condition / Test Point traceability ->
   Coverage Matrix.
 
 ## 3. Test Dimensions
@@ -139,6 +139,54 @@ Common dimensions:
 - Regression
 
 When `Permission` applies, read `permission-risk.md`.
+
+## 3.1 Risk Type, Subtype, and Tags
+
+Risk Type describes the primary failure domain. It is not the same as a Test
+Dimension or Technique. Select exactly one stable Primary Type:
+
+| Risk Type | Meaning | Candidate strategies |
+|---|---|---|
+| `functional` | Required business behavior or result may be wrong | Scenario, branch, decision rule, negative path |
+| `security` | Confidentiality, integrity, authorization, or abuse resistance may fail | Negative testing, abuse case, privilege bypass, enumeration, information leakage |
+| `integration` | A boundary between components, services, or external systems may fail | Contract, timeout, error propagation, retry, idempotency |
+| `data` | Data correctness, consistency, shape, or lifecycle may fail | Integrity, missing/duplicate data, precision, migration, reconciliation |
+| `state` | State storage or transitions may be wrong | State transition, forbidden transition, repetition, recovery |
+| `configuration` | Configuration values or their lifecycle may produce wrong behavior | Missing/invalid values, on/off combinations, cache, hot reload |
+| `compatibility` | Existing clients, versions, configurations, or historical data may break | Upgrade, downgrade, old/new version, API/data/config compatibility |
+| `performance` | Latency, throughput, capacity, or resource use may violate expectations | Load, latency, capacity, duration, degradation trend |
+| `availability_resilience` | Failures may cause interruption or prevent recovery | Fault injection, timeout, fallback, restart, retry, recovery |
+| `usability` | Users may be unable to discover, understand, or complete the flow | Discoverability, feedback, error messaging, accessibility |
+| `observability` | Operators may be unable to detect, correlate, or diagnose behavior | Logs, metrics, alerts, correlation IDs, diagnostic context |
+
+`Risk Subtype` is a concise failure mode such as `information_disclosure` or
+`cache_invalidation`. `Risk Tags` are zero or more cross-cutting labels such as
+`timing`, `concurrency`, `permission`, `boundary`, `recovery`, or `regression`.
+Use `none` when no subtype or tag adds information.
+
+The candidate strategies above are prompts for analysis, not mandatory output.
+Only generate coverage that is reachable and justified by the risk's trigger,
+impact, doubts, and evidence. For example, a `security` risk does not require
+enumeration, privilege bypass, and information leakage tests unless those
+failure modes are actually applicable.
+
+## 3.2 Risk Status
+
+Use one lifecycle status and keep decisions or evidence summaries in their own
+fields:
+
+| Status | Meaning |
+|---|---|
+| `identified` | Candidate risk recorded but not yet prepared for validation. |
+| `pending_validation` | Validation is planned or still incomplete. |
+| `validated` | Evidence confirms that the risk is real. |
+| `accepted` | The risk is real and an authorized decision explicitly accepts it. |
+| `mitigated` | A control or change reduces the risk, but closure is not yet established. |
+| `closed` | Evidence shows the risk is resolved. |
+| `dismissed` | Evidence shows the candidate risk does not apply or is not real. |
+
+Test coverage does not by itself make a risk `closed`. An `accepted` or
+`dismissed` risk must carry a Decision Note with its confirmation or evidence.
 
 ## 4. Test Condition Identification
 
@@ -293,6 +341,11 @@ REQ-001 -> TP-001, TP-002, TP-003
 Recommend a matrix when requirements, risks, conditions, and test points start
 crossing.
 
+When a Requirement Spec exists, each `REQ-###` row is an Atomic Requirement and
+must be reviewed independently. Do not substitute the `REQ-SPEC-*` artifact ID
+or upstream Feature ID for these rows; an unmapped Atomic Requirement is a
+Coverage Gap even when sibling requirements are covered.
+
 Require a matrix only when traceability is many-to-many or coverage
 relationships are difficult to verify directly. Permission, state-machine,
 decision-table, combination, cross-module, or high-risk analysis may use other
@@ -300,7 +353,7 @@ structured aids when the traceability remains simple.
 
 Minimum matrix columns:
 
-| Requirement / Bug | Risk | Dimension | Condition | Technique | Test Point |
+| Atomic Requirement / Bug | Risk | Dimension | Condition | Technique | Test Point |
 |---|---|---|---|---|---|
 
 ## 11. Gap Handling
@@ -316,3 +369,33 @@ Use explicit gaps instead of inventing behavior:
 
 Write these as `Open Question` or `Coverage Gap`, and let the workflow decide
 whether to ask the user, inspect more source, or defer coverage.
+
+## 12. Traceability Lint
+
+Test Points are the authoritative coverage artifact between analysis and case
+implementation. Before finalizing Risk Analysis, Test Points, or Test Cases,
+build a Run-scoped registry from the managed artifacts:
+
+| ID | Definition |
+|---|---|
+| `REQ-###` | Atomic Requirement heading |
+| `BR-###` | Requirement Spec business-rule table |
+| `Q-###` | Requirement Spec open-question table |
+| `RISK-###` | Risk detail heading |
+| `TP-###` | Test Point list ID or TP heading |
+| `TC-###` | Test Case heading |
+
+Reject duplicate definitions and any internal reference that is absent from the
+registry. Artifact-level Test Point validation must also ensure that every TP
+used by Requirement Coverage, Risk Coverage, Coverage Matrix, Coverage Gap, or
+traceability sections exists in the same Test Point artifact.
+
+Report the source file, line, and missing ID, for example:
+
+```text
+dangling_reference test-points.md:42: TP-044 NOT FOUND
+```
+
+Do not auto-correct it to a nearby identifier. A missing ID may mean a typo, a
+deleted item, or an omitted Test Point, and those cases require different fixes.
+`RA-###` remains unsupported until its declaration and meaning are contracted.
