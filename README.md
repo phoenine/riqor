@@ -90,8 +90,8 @@ Expected result:
 ```text
 OK project shop-platform
 OK knowledge index examples/shop-platform/knowledge/_index.md
-OK capabilities 17
-OK artifact templates 15
+OK capabilities 18
+OK artifact templates 16
 ```
 
 ## Initialize a new project
@@ -120,6 +120,31 @@ Sources must already exist under the repository root. They are registered in
 `knowledge/<project-id>/_sources.yaml` but are not treated as confirmed
 knowledge. `init` refuses to overwrite an existing Project Profile or knowledge
 root.
+
+For a project that will generate API automation, declare the integration at
+initialization time:
+
+```bash
+agent-next init \
+  --project-id iot-ops \
+  --name "IoT Ops" \
+  --automation api
+```
+
+This writes an API-capable repository entry and an immutable
+`rigorpath-api-test` runtime revision into the Project Profile. It does not
+download anything during initialization. After an automation classification is
+reviewed, prepare the thin consumer project with:
+
+```bash
+agent-next prepare-automation \
+  --project config/projects/iot-ops.yaml \
+  --classification outputs/iot-ops/<scope>/automation/classification.md
+```
+
+Only `A0` or `A1` rows whose target is `api` or `hybrid` trigger preparation.
+The selected Skill provider creates `repositories/automation/iot-ops-api-test`
+and resolves its pinned dependency. Use `--no-install` for an offline scaffold.
 
 Project knowledge is optional for users. `init` creates an empty internal
 context skeleton so a new project can start from only a description or PRD.

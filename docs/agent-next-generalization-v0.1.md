@@ -677,6 +677,12 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 `runtime_url@runtime_revision` 获取运行时。revision 必须是不可变 tag 或 commit；已有非空
 目录只复用、不覆盖。
 
+`agent-next init --automation api` 从声明式 automation preset 生成上述 repository 与
+integration 配置，但初始化阶段不访问网络。完成并确认 `automation_classification` 后，
+`agent-next prepare-automation` 仅对 `A0/A1 + api/hybrid` 行调用 Profile 选择的 Skill
+provider；无符合条件的行明确 skip。Core 只读取 provider contract，不包含 pytest、端点、
+认证或产品规则。
+
 ### 9.10 测试执行与报告
 
 执行记录必须区分：

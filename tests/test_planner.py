@@ -131,6 +131,24 @@ class PlannerTests(unittest.TestCase):
             self.assertTrue(report.ready)
             self.assertEqual(report.steps, [])
 
+    def test_automation_implementation_uses_prepare_capability(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_ready(root, "TC-001", "test_cases", "checkout")
+            write_ready(root, "AUTO-CLASS-001", "automation_classification", "checkout")
+            report = build_plan(
+                goal="automation_implementation",
+                scope_id="checkout",
+                inventory=load_inventory(root, PROFILE),
+                registry=self.registry,
+            )
+            self.assertEqual(report.blockers, [])
+            self.assertEqual(
+                [step.capability_id for step in report.steps],
+                ["feature-intake", "automation-prepare"],
+            )
+            self.assertEqual(report.steps[-1].skill, "pytest-yaml-api")
+
     def test_stale_artifact_is_planned_for_regeneration(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

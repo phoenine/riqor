@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .artifacts import ArtifactActionError, gate_artifact, scaffold_artifact
+from .automation_prepare import AutomationPrepareError, prepare_api_automation
 from .bootstrap import InitError, init_project
 from .contracts import ContractError, load_yaml, validate_project_profile
 from .doctor import run_doctor
@@ -62,7 +63,27 @@ def build_parser() -> argparse.ArgumentParser:
     initialize.add_argument("--track", action="append", dest="tracks")
     initialize.add_argument("--default-track")
     initialize.add_argument("--source", action="append", type=Path, default=[])
+    initialize.add_argument(
+        "--automation",
+        action="append",
+        default=[],
+        help="configure a declared automation preset, such as api (repeatable)",
+    )
     initialize.add_argument("--root", type=Path, default=Path.cwd())
+
+    prepare_automation = subparsers.add_parser(
+        "prepare-automation",
+        help="prepare a Profile-selected automation project for eligible classified cases",
+    )
+    prepare_automation.add_argument("--project", required=True, type=Path)
+    prepare_automation.add_argument("--classification", required=True, type=Path)
+    prepare_automation.add_argument("--repository-id")
+    prepare_automation.add_argument(
+        "--no-install",
+        action="store_true",
+        help="create or verify the consumer project without resolving dependencies",
+    )
+    prepare_automation.add_argument("--root", type=Path, default=Path.cwd())
 
     inventory = subparsers.add_parser("inventory", help="inspect current artifacts")
     inventory.add_argument("--project", required=True, type=Path)
@@ -178,6 +199,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 tracks=tracks,
                 default_track=default_track,
                 sources=args.source,
+                automations=args.automation,
             )
         except InitError as exc:
             print(f"ERROR {exc}")
@@ -185,6 +207,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"OK created project profile {result.profile_path}")
         print(f"OK initialized optional project context {result.knowledge_root}")
         print(f"OK registered sources {result.source_count}")
+        if args.automation:
+            print("OK configured automation " + ", ".join(args.automation))
         return 0
     if args.command in {"status", "explain", "record"}:
         root = args.root.resolve()
@@ -272,6 +296,41 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
         for path in written:
             print(f"OK confirmed knowledge {path}")
+        return 0
+    if args.command == "prepare-automation":
+        profile, profile_errors = _project_profile(root, args.project)
+        if profile_errors:
+            for error in profile_errors:
+                print(f"ERROR project profile: {error}")
+            return 1
+        assert profile is not None
+        profile_path = args.project if args.project.is_absolute() else root / args.project
+        classification_path = (
+            args.classification
+            if args.classification.is_absolute()
+            else root / args.classification
+        )
+        try:
+            result = prepare_api_automation(
+                root=root,
+                profile_path=profile_path,
+                profile=profile,
+                classification_path=classification_path,
+                repository_id=args.repository_id,
+                install=not args.no_install,
+            )
+        except (AutomationPrepareError, OSError) as exc:
+            print(f"BLOCKED {exc}")
+            return 1
+        if result.status == "skipped":
+            print("SKIPPED no A0/A1 api or hybrid cases")
+            return 0
+        assert result.destination is not None
+        print(
+            f"OK automation project {result.status} "
+            f"{result.destination.relative_to(root)}"
+        )
+        print("CASES " + ", ".join(result.eligible_cases))
         return 0
     if args.command in {"inventory", "register", "plan", "run", "scaffold", "gate"}:
         root = args.root.resolve()

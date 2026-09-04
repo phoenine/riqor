@@ -1,0 +1,9 @@
+schema_version: 1
+capability: api
+prepare:
+  script: scripts/scaffold_framework.py
+  install_command:
+    - uv
+    - sync
+    - --project
+    - "{destination}"

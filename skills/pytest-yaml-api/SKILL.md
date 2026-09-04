@@ -28,7 +28,12 @@ before generating or changing YAML cases.
 2. For `bootstrap`, confirm that no declared API automation repository already
    provides the required capability. Read the runtime URL and immutable tag or
    commit from `integrations.api_automation.config`, preview the target, then run
-   `python3 scripts/scaffold_framework.py --project-profile <profile> --repository-id <id> --workspace-root <root> --install`.
+   `agent-next prepare-automation --project <profile> --classification <artifact>`.
+   Core reads this Skill's `provider.yaml` and invokes the local scaffold plus
+   install commands only when the classification contains an `A0/A1` API or
+   hybrid case. Use `python3 scripts/scaffold_framework.py --project-profile
+   <profile> --repository-id <id> --workspace-root <root> --install` only when
+   invoking this Skill directly outside the Agent-next lifecycle.
    The URL defaults to the official RigorPath runtime. The script refuses a
    non-empty destination and never overwrites files; `--install` uses `uv sync`
    to fetch the pinned runtime into the generated project's virtual environment.

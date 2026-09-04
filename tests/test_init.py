@@ -120,6 +120,48 @@ class InitProjectTests(unittest.TestCase):
                     default_track="backend",
                 )
 
+    def test_api_automation_preset_adds_pinned_profile_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = init_project(
+                root=root,
+                project_id="iot-ops",
+                name="IoT Ops",
+                tracks=["default"],
+                default_track="default",
+                automations=["api"],
+            )
+
+            profile = load_yaml(root / result.profile_path)
+            self.assertEqual(
+                profile["repositories"]["automation"],
+                [
+                    {
+                        "id": "iot-ops-api-test",
+                        "path": "repositories/automation/iot-ops-api-test",
+                        "capabilities": ["api"],
+                    }
+                ],
+            )
+            integration = profile["integrations"]["api_automation"]
+            self.assertEqual(integration["skill"], "pytest-yaml-api")
+            self.assertRegex(integration["config"]["runtime_revision"], r"^[0-9a-f]{40}$")
+            self.assertFalse((root / "repositories/automation/iot-ops-api-test").exists())
+
+    def test_unknown_automation_preset_is_rejected_before_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(InitError, "unknown automation preset"):
+                init_project(
+                    root=root,
+                    project_id="sample-project",
+                    name="Sample Project",
+                    tracks=["default"],
+                    default_track="default",
+                    automations=["mobile"],
+                )
+            self.assertFalse((root / "config/projects/sample-project.yaml").exists())
+
 
 class InitCliTests(unittest.TestCase):
     def test_cli_creates_default_track_project(self) -> None:
@@ -141,6 +183,26 @@ class InitCliTests(unittest.TestCase):
             self.assertIn("OK registered sources 0", output.getvalue())
             profile = load_yaml(Path(temporary) / "config/projects/sample-project.yaml")
             self.assertEqual(profile["project"]["tracks"], ["default"])
+
+    def test_cli_configures_api_automation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                status = main(
+                    [
+                        "init",
+                        "--root",
+                        temporary,
+                        "--project-id",
+                        "iot-ops",
+                        "--name",
+                        "IoT Ops",
+                        "--automation",
+                        "api",
+                    ]
+                )
+            self.assertEqual(status, 0)
+            self.assertIn("OK configured automation api", output.getvalue())
 
 
 if __name__ == "__main__":

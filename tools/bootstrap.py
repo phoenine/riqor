@@ -4,7 +4,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 import yaml
 
@@ -34,6 +34,58 @@ class InitResult:
     profile_path: Path
     knowledge_root: Path
     source_count: int
+
+
+def load_automation_presets() -> dict[str, dict[str, Any]]:
+    path = REPOSITORY_ROOT / "config" / "automation-presets.yaml"
+    try:
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise InitError(f"cannot load automation presets: {exc}") from exc
+    presets = document.get("presets") if isinstance(document, dict) else None
+    if not isinstance(presets, dict):
+        raise InitError("automation presets must contain a presets mapping")
+    return presets
+
+
+def _automation_configuration(
+    project_id: str,
+    selections: Sequence[str],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if len(set(selections)) != len(selections):
+        raise InitError("automation selections must be unique")
+    presets = load_automation_presets()
+    repositories: list[dict[str, Any]] = []
+    integrations: dict[str, Any] = {}
+    for selection in selections:
+        preset = presets.get(selection)
+        if not isinstance(preset, dict):
+            raise InitError(
+                f"unknown automation preset {selection!r}; available: "
+                + ", ".join(sorted(presets))
+            )
+        required = ("repository_suffix", "capability", "integration", "skill", "config")
+        missing = [key for key in required if key not in preset]
+        if missing:
+            raise InitError(
+                f"automation preset {selection!r} is missing: " + ", ".join(missing)
+            )
+        repository_id = f"{project_id}-{preset['repository_suffix']}"
+        repositories.append(
+            {
+                "id": repository_id,
+                "path": f"repositories/automation/{repository_id}",
+                "capabilities": [str(preset["capability"])],
+            }
+        )
+        integration_id = str(preset["integration"])
+        if integration_id in integrations:
+            raise InitError(f"duplicate automation integration: {integration_id}")
+        integrations[integration_id] = {
+            "skill": str(preset["skill"]),
+            "config": dict(preset["config"]),
+        }
+    return repositories, integrations
 
 
 def _render_template(name: str, values: dict[str, str]) -> str:
@@ -88,6 +140,7 @@ def init_project(
     tracks: Sequence[str],
     default_track: str,
     sources: Sequence[Path] = (),
+    automations: Sequence[str] = (),
 ) -> InitResult:
     root = root.resolve()
     if not root.is_dir():
@@ -105,6 +158,9 @@ def init_project(
         raise InitError(f"knowledge root already exists: {knowledge_relative}")
 
     registered_sources = [_relative_source(root, source) for source in sources]
+    automation_repositories, automation_integrations = _automation_configuration(
+        project_id, automations
+    )
     profile = {
         "schema_version": 1,
         "project": {
@@ -119,7 +175,11 @@ def init_project(
             "index": (knowledge_relative / "_index.md").as_posix(),
         },
         "artifacts": {"root": artifacts_relative.as_posix()},
-        "repositories": {"product": [], "automation": [], "tools": []},
+        "repositories": {
+            "product": [],
+            "automation": automation_repositories,
+            "tools": [],
+        },
         "policies": {
             "require_confirmation": [
                 "remote_write",
@@ -128,6 +188,8 @@ def init_project(
             ]
         },
     }
+    if automation_integrations:
+        profile["integrations"] = automation_integrations
     profile_errors = validate_project_profile(profile)
     if profile_errors:
         raise InitError("generated profile is invalid: " + "; ".join(profile_errors))

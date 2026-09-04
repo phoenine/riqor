@@ -1,0 +1,14 @@
+schema_version: 1
+id: automation-prepare
+title: Prepare classified test automation
+description: Create or verify the Profile-selected automation consumer project for eligible cases.
+workflow: feature-quality
+phase: Optional Case Sync Or Generation
+requires:
+  all: [test_cases, automation_classification]
+optional: []
+produces: [automation_implementation]
+side_effect: false
+action_class: local_write
+skill: pytest-yaml-api
+template: automation-implementation

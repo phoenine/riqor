@@ -30,8 +30,12 @@ when classifying test cases or reviewing an existing classification.
    conventions.
 4. Produce an `automation_classification` or execution plan before changing an
    automation repository or running against a shared environment.
-5. Request confirmation immediately before repository mutation.
-6. Record implementation files, revision, validation, and remaining blockers in
+5. For eligible `A0/A1` API or hybrid rows, use `agent-next
+   prepare-automation`; it resolves the repository and implementation provider
+   from the Project Profile. Treat this explicit command as authorization for
+   the declared local scaffold only.
+6. Request confirmation immediately before remote repository mutation.
+7. Record implementation files, revision, validation, and remaining blockers in
    Run State and the relevant artifact. Hand executable selectors and commands
    to `test-execution`; do not interpret runner results here.
 
