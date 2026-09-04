@@ -29,7 +29,7 @@ python3 tools/validate_run_state.py \
 ```
 
 `--schema` defaults to `schemas/run-state.schema.json`. JSON Schema checks run
-through `jsonschema` (see `requirements.txt`). Semantic checks then apply:
+through `jsonschema` (declared in `pyproject.toml`). Semantic checks then apply:
 
 - canonical phase names per entry (`tools/phases.py`, reported as `$.phase:`)
 - global run-state rules shared with `tools/stage_gate.py` (router skill
@@ -216,9 +216,9 @@ python3 tools/run_state.py \
   --release-scope-track payments
 ```
 
-Release-level artifacts belong under `outputs/releases/<release>/`; referenced
-feature, bug, test point, test case, and automation assets stay under their
-Project Profile output root.
+Release-level artifacts belong under
+`<Project Profile artifacts.root>/releases/<release>/`; referenced feature,
+bug, test point, test case, and automation assets remain in their owning scope.
 
 ## Skill Receipt Rules
 

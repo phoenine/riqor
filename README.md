@@ -9,20 +9,15 @@ The v0.1 design is documented in
 [`docs/agent-next-generalization-v0.1.md`](docs/agent-next-generalization-v0.1.md).
 For a verified end-to-end example, see the
 [`Shop Platform quickstart`](docs/quickstart-shop-platform.md).
-The implementation must also follow the
-[`Agent-next reuse alignment audit`](docs/agent-next-reuse-alignment-audit-v0.1.md):
-Agent-new reuses and parameterizes Agent-next rather than replacing its proven
-Workflow, Skill, Run State, Stage Gate, template, and validator chain.
+The implementation reuses and parameterizes the proven Agent-next Workflow,
+Skill, Run State, Stage Gate, template, and validator chain instead of
+maintaining a parallel execution model.
 
-## Current milestone
+## Architecture summary
 
-R1 through R3 of the reuse-alignment plan are implemented. Agent-new now contains the
-proven Agent-next path resolver, phase router, Run State writer/schema/migrator,
-template copier, artifact validators, test-case validator, and Stage Gate.
-Run state requires project-defined `project_id` and `tracks`; Core does not
-define project-specific identity enums or routing fallbacks.
-
-The following Agent-new additions remain retained:
+The Core includes the path resolver, phase router, Run State
+writer/schema/migrator, template copier, artifact validators, test-case
+validator, Stage Gate, and these project-agnostic capabilities:
 
 - Project Profiles
 - Artifact metadata
@@ -31,14 +26,14 @@ The following Agent-new additions remain retained:
 - Artifact inventory and stale propagation
 - Scope-aware dependency planning
 
-R2 adds generic `requirement-analysis`, `test-analysis`, `test-case-design`,
+The repository provides generic `requirement-analysis`, `test-analysis`, `test-case-design`,
 `automation`, `test-execution`, `reporting`, `release-acceptance`, and
 `zentao-sync` Skills.
 Capabilities now reference their authoritative Workflow, Phase, and Skill.
 Product-specific automation and data rules belong in downstream Project
 Profiles or private extension packages, not this repository.
-R3 connects `inventory`, `run`, `status`, `explain`, `scaffold`, and `gate` to
-that inherited execution chain. Artifact identity, revisions, and traceability
+`inventory`, `run`, `status`, `explain`, `scaffold`, and `gate` use the same
+execution chain. Artifact identity, revisions, and traceability
 live under `runs/`; `outputs/` contains only user-facing deliverables. No
 parallel Adapter SDK or second execution-state model is developed.
 
