@@ -183,7 +183,8 @@ class ValidateTestCasesTests(unittest.TestCase):
             case_path.write_text(VALID_CASE, encoding="utf-8")
             state = {
             "run_id": "demo",
-            "product_line": "v2",
+            "project_id": "shop-platform",
+            "tracks": ["storefront"],
             "entry": "bug-regression",
             "workflow": "workflows/bug-regression/README.md",
             "phase": "Regression Plan",

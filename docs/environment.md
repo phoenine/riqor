@@ -23,7 +23,7 @@ agent-next env --group ZENTAO
 ```
 
 Supported groups are `ZENTAO`, `GITLAB`, `LARK`, `TEST_SERVER`, `PG`, `CK`,
-`RABBITMQ`, `MAGE`, `REDIS`, and `EPVS_TEST`. `SET` only means that a value is
+`RABBITMQ`, `MAGE`, and `REDIS`. `SET` only means that a value is
 present; it does not prove credentials or connectivity are valid.
 
 Do not add a group to Run State `environment.checked_groups` merely because its

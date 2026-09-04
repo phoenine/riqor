@@ -34,7 +34,7 @@ class ProjectProfileTests(unittest.TestCase):
 
     def test_unknown_core_field_fails(self) -> None:
         profile = deepcopy(VALID_PROFILE)
-        profile["product_line"] = "v2"
+        profile["internal_product_code"] = "legacy"
         errors = validate_project_profile(profile)
         self.assertTrue(any("Additional properties" in error for error in errors))
 

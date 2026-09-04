@@ -58,12 +58,6 @@ ENV_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "MAGE": ("MAGE_BASE_URL", "MAGE_USERNAME", "MAGE_PASSWORD"),
     "REDIS": ("REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD"),
-    "EPVS_TEST": (
-        "EPVS_TEST_USERNAME",
-        "EPVS_TEST_PASSWORD",
-        "EPVS_TEST_TENANT",
-        "EPVS_TEST_WORKSHOP",
-    ),
 }
 
 

@@ -19,8 +19,8 @@ Workflow, Skill, Run State, Stage Gate, template, and validator chain.
 R1 through R3 of the reuse-alignment plan are implemented. Agent-new now contains the
 proven Agent-next path resolver, phase router, Run State writer/schema/migrator,
 template copier, artifact validators, test-case validator, and Stage Gate.
-New run state accepts project-defined `project_id` and `tracks`; legacy
-`product_line` remains readable during migration and is not a Core enum.
+Run state requires project-defined `project_id` and `tracks`; Core does not
+define project-specific identity enums or routing fallbacks.
 
 The following Agent-new additions remain retained:
 
@@ -33,10 +33,9 @@ The following Agent-new additions remain retained:
 
 R2 adds generic `requirement-analysis`, `test-analysis`, `test-case-design`,
 `automation`, `reporting`, `release-acceptance`, and `zentao-sync` Skills.
-Capabilities now reference their authoritative Workflow, Phase, and Skill;
-ePVS-specific automation/data rules remain explicit compatibility extensions.
-The secret-free interface and its verification boundary are documented in
-[`profiles/epvs/README.md`](profiles/epvs/README.md).
+Capabilities now reference their authoritative Workflow, Phase, and Skill.
+Product-specific automation and data rules belong in downstream Project
+Profiles or private extension packages, not this repository.
 R3 connects `inventory`, `run`, `status`, `explain`, `scaffold`, and `gate` to
 that inherited execution chain. Artifact identity, revisions, and traceability
 live under `runs/`; `outputs/` contains only user-facing deliverables. No

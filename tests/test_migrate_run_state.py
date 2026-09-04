@@ -15,7 +15,8 @@ def legacy_state(*, workflow: str = "workflows/feature-quality.md"):
     del state["schema_version"]
     state.update(
         {
-            "product_line": "v2",
+            "project_id": "shop-platform",
+            "tracks": ["storefront"],
             "entry": "feature-quality",
             "workflow": workflow,
             "phase": "Intake",
@@ -38,7 +39,7 @@ class MigrateRunStateTests(unittest.TestCase):
             report, candidate = migrate_run_state.audit_state(path)
 
             self.assertEqual(report["status"], "ready")
-            self.assertEqual(candidate["schema_version"], 2)
+            self.assertEqual(candidate["schema_version"], 3)
             self.assertEqual(candidate["workflow"], "workflows/feature-quality/README.md")
             self.assertEqual(file_hash(path), before)
             self.assertTrue(report["post_migration_validation_errors"])
@@ -79,7 +80,7 @@ class MigrateRunStateTests(unittest.TestCase):
             self.assertTrue(backup.is_file())
             self.assertEqual(backup.read_text(encoding="utf-8"), original)
             migrated = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(migrated["schema_version"], 2)
+            self.assertEqual(migrated["schema_version"], 3)
             self.assertEqual(migrated["workflow"], "workflows/feature-quality/README.md")
 
     def test_absolute_skill_path_only_rewrites_when_hash_matches(self):

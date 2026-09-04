@@ -12,9 +12,10 @@ stage_gate = load_tool("stage_gate")
 def valid_state():
     skill_path = ROOT / "skills/agent-next/SKILL.md"
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "run_id": "demo",
-        "product_line": "v2",
+        "project_id": "shop-platform",
+        "tracks": ["storefront"],
         "entry": "feature-quality",
         "workflow": "workflows/feature-quality/README.md",
         "phase": "Requirement Specification",
@@ -32,8 +33,8 @@ def valid_state():
             "dev": [
                 {
                     "kind": "dev",
-                    "name": "newepvs-demo",
-                    "path": "repositories/dev/newepvs-demo",
+                    "name": "storefront-demo",
+                    "path": "repositories/dev/storefront-demo",
                     "working_tree_state": "unknown",
                 }
             ],
@@ -42,7 +43,7 @@ def valid_state():
         },
         "repository_evidence": [
             {
-                "repo": "newepvs-demo",
+                "repo": "storefront-demo",
                 "evidence_type": "file",
                 "references": ["src/App.tsx"],
                 "supports": ["REQ-001"],
@@ -67,7 +68,7 @@ def valid_state():
             {
                 "id": "REQ-001",
                 "type": "requirement_spec",
-                "path": "outputs/v2/requirements/requirement.md",
+                "path": "outputs/shop-platform/requirements/requirement.md",
                 "producer_phase": "Requirement Specification",
                 "source_artifacts": [],
                 "evidence": [],
@@ -101,15 +102,15 @@ class ValidateRunStateTests(unittest.TestCase):
 
     def test_invalid_defaults_fail_closed(self):
         state = valid_state()
-        state["product_line"] = ""
+        state["project_id"] = ""
         state["entry"] = ""
         errors = validate_run_state.check_state(state)
-        self.assertTrue(any(error.startswith("$:") for error in errors))
+        self.assertTrue(any(error.startswith("$.project_id:") for error in errors))
         self.assertTrue(any(error.startswith("$.entry:") for error in errors))
 
     def test_generic_project_track_identity_passes_schema(self):
         state = valid_state()
-        state.update({"project_id": "shop-platform", "tracks": ["storefront"], "product_line": ""})
+        state.update({"project_id": "shop-platform", "tracks": ["storefront"]})
         errors = validate_run_state.check_schema(state, validate_run_state.DEFAULT_SCHEMA)
         self.assertEqual(errors, [])
 

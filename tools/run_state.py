@@ -36,8 +36,6 @@ def default_state(run_id: str) -> dict[str, Any]:
         "run_id": run_id,
         "project_id": "",
         "tracks": [],
-        # Legacy Agent-next compatibility. New runs use project_id + tracks.
-        "product_line": "",
         "release_scope_tracks": [],
         "entry": "",
         "workflow": "",
@@ -104,8 +102,6 @@ def update_state(args: argparse.Namespace) -> Path:
         state["project_id"] = args.project_id
     if getattr(args, "track", []):
         state["tracks"] = unique(state.get("tracks", []) + args.track)
-    if getattr(args, "product_line", None):
-        state["product_line"] = args.product_line
     if getattr(args, "release_scope_track", []):
         state["release_scope_tracks"] = unique(state.get("release_scope_tracks", []) + args.release_scope_track)
 
@@ -333,10 +329,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--runs-root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--project-id", help="Project Profile project.id for this run.")
     parser.add_argument("--track", action="append", default=[], help="Project-defined owning track; repeatable.")
-    parser.add_argument(
-        "--product-line",
-        help="Legacy compatibility field. Prefer --project-id and --track for new runs.",
-    )
     parser.add_argument("--release-scope-track", action="append", default=[])
     parser.add_argument("--entry", choices=["feature-quality", "bug-regression", "release-acceptance"])
     parser.add_argument("--workflow")

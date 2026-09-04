@@ -37,14 +37,19 @@ class GeneralizationAlignmentTests(unittest.TestCase):
                 self.assertEqual(registry.errors, [])
                 self.assertTrue(registry.records)
 
-    def test_generic_execution_chain_has_no_epvs_skill_dependency(self) -> None:
-        paths = [ROOT / "tools" / "stage_gate.py"]
-        paths.extend((ROOT / "workflows").glob("*.md"))
-        paths.extend((ROOT / "workflows").glob("*/README.md"))
-        paths.extend((ROOT / "workflows").glob("*/phases/*.md"))
-        for path in paths:
-            with self.subTest(path=path.relative_to(ROOT)):
-                self.assertNotIn("epvs-", path.read_text(encoding="utf-8").lower())
+    def test_repository_distributes_only_generic_skills(self) -> None:
+        distributed = {
+            path.name
+            for path in (ROOT / "skills").iterdir()
+            if path.is_dir() and (path / "SKILL.md").is_file()
+        }
+        self.assertEqual(distributed, set(GENERIC_SKILLS))
+
+    def test_repository_distributes_only_the_default_profile(self) -> None:
+        distributed = {
+            path.name for path in (ROOT / "profiles").iterdir() if path.is_dir()
+        }
+        self.assertEqual(distributed, {"default"})
 
     def test_zentao_stays_skill_first(self) -> None:
         skill = (ROOT / "skills" / "zentao-sync" / "SKILL.md").read_text(encoding="utf-8")
@@ -57,12 +62,6 @@ class GeneralizationAlignmentTests(unittest.TestCase):
         self.assertNotIn("CaseManagementAdapter", code)
         stage_gate = (ROOT / "tools" / "stage_gate.py").read_text(encoding="utf-8")
         self.assertNotIn('"zentao-sync"', stage_gate)
-
-    def test_epvs_compatibility_is_explicit_profile_data(self) -> None:
-        profile = yaml.safe_load((ROOT / "profiles" / "epvs" / "profile.yaml").read_text(encoding="utf-8"))
-        self.assertEqual(profile["legacy"]["skills"]["zentao-sync"], "epvs-zentao-sync")
-        self.assertEqual(profile["legacy"]["product_line_tracks"]["v2"], "v2")
-        self.assertEqual(profile["private_project_profile"], "config/projects/epvs.yaml")
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ from phases import workflow_readme_path  # noqa: E402
 from run_state_schema import (  # noqa: E402
     CURRENT_SCHEMA_VERSION,
     LEGACY_SCHEMA_VERSION,
+    PREVIOUS_SCHEMA_VERSION,
     detect_schema_version,
 )
 from validate_run_state import (  # noqa: E402
@@ -70,9 +71,10 @@ def build_candidate(state: dict[str, Any]) -> tuple[dict[str, Any], list[dict[st
         return candidate, actions, ["schema_version must be an integer"]
     if version == CURRENT_SCHEMA_VERSION:
         return candidate, actions, blockers
-    if version != LEGACY_SCHEMA_VERSION:
+    if version not in {LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION}:
         return candidate, actions, [
-            f"unsupported schema_version {version}; expected {LEGACY_SCHEMA_VERSION} or {CURRENT_SCHEMA_VERSION}"
+            f"unsupported schema_version {version}; expected "
+            f"{LEGACY_SCHEMA_VERSION}, {PREVIOUS_SCHEMA_VERSION}, or {CURRENT_SCHEMA_VERSION}"
         ]
 
     candidate["schema_version"] = CURRENT_SCHEMA_VERSION

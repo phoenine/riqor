@@ -18,8 +18,8 @@ These instructions apply to the entire repository.
 2. Keep Core project-agnostic. Product names, tracks, repositories, platforms,
    and environment policies belong in Project Profiles or Skills; adapters are
    optional thin drivers, not the default integration model.
-3. Do not add `v1`, `v2`, ePVS, ZenTao, or a specific repository as a Core
-   enum or default.
+3. Do not add product-specific tracks, integrations, or repositories as Core
+   enums or defaults.
 4. Treat knowledge as reusable context and evidence as run-specific support.
 5. Any remote write, shared-environment execution, or shared-data mutation must
    remain an explicit confirmation boundary.

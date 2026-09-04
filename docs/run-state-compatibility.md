@@ -15,7 +15,7 @@ Schema:
 schemas/run-state.schema.json
 ```
 
-The current contract is `schema_version: 2`. Historical files without this
+The current contract is `schema_version: 3`. Historical files without this
 field are treated as legacy v1, but ordinary writers will not upgrade them
 implicitly.
 
@@ -76,10 +76,11 @@ knowledge classifications.
 
 | Field | Purpose |
 |---|---|
-| `schema_version` | Run-state contract version. Must be `2` for current writers and gates. |
+| `schema_version` | Run-state contract version. Must be `3` for current writers and gates. |
 | `run_id` | Stable run identifier. |
-| `product_line` | Product line for single-asset routing and output decisions. Must be `v1` or `v2`. |
-| `release_scope_tracks` | Release bundle coverage for release acceptance. Values may include `v1`, `v2`, and `shared`. |
+| `project_id` | Project Profile identity for this run. |
+| `tracks` | One or more owning tracks declared by the Project Profile. |
+| `release_scope_tracks` | Project-defined Track coverage for release acceptance. |
 | `entry` | One of `feature-quality`, `bug-regression`, or `release-acceptance`. |
 | `workflow` | Selected workflow file path. |
 | `phase` | Current workflow phase. |
@@ -185,12 +186,12 @@ hand (run from this repository root):
 ```bash
 python3 tools/run_state.py \
   --run-id feature-login-20260708 \
-  --repository kind=dev,name=newepvs-demo,path=repositories/dev/newepvs-demo,commit=abc123 \
-  --repository-evidence repo=newepvs-demo,evidence_type=file,reference=src/App.tsx,supports=REQ-001 \
-  --knowledge-used path=knowledge/epvs/_index.md,purpose=术语确认 \
+  --repository kind=dev,name=storefront-demo,path=repositories/dev/storefront-demo,commit=abc123 \
+  --repository-evidence repo=storefront-demo,evidence_type=file,reference=src/App.tsx,supports=REQ-001 \
+  --knowledge-used path=knowledge/shop-platform/_index.md,purpose=术语确认 \
   --knowledge-plan-status not-needed \
   --knowledge-plan-summary "未发现需要补充的领域知识。" \
-  --knowledge-plan-evidence knowledge/epvs/_index.md \
+  --knowledge-plan-evidence knowledge/shop-platform/_index.md \
   --trace from=REQ-001,to=RISK-001,relation=drives
 ```
 
@@ -198,32 +199,26 @@ Use `--knowledge-plan-status proposed` with `--knowledge-proposed-update
 path=knowledge/...,summary=...,status=proposed` when a workflow
 finds knowledge that should be reviewed before it becomes durable knowledge.
 
-## Product Line Rules
+## Project And Track Rules
 
-Record `product_line` before selecting repositories or writing artifacts.
-
-- Use `v1` for the legacy ePVS product line.
-- Use `v2` for the current ePVS product line.
-- If the product line is unclear, ask before creating downstream artifacts.
-
-For release acceptance, `product_line` is not the release scope. It remains the
-owning line of a single artifact for compatibility. Record the release bundle
-coverage separately:
+Every run records a `project_id` and at least one project-defined `track`.
+Release acceptance records its bundle coverage separately with
+`release_scope_tracks`:
 
 ```bash
 python3 tools/run_state.py \
   --run-id release-2.8.0 \
+  --project-id shop-platform \
+  --track storefront \
   --entry release-acceptance \
   --phase "Release Baseline" \
-  --product-line v2 \
-  --release-scope-track v1 \
-  --release-scope-track v2 \
-  --release-scope-track shared
+  --release-scope-track storefront \
+  --release-scope-track payments
 ```
 
 Release-level artifacts belong under `outputs/releases/<release>/`; referenced
 feature, bug, test point, test case, and automation assets stay under their
-owning `outputs/v1/`, `outputs/v2/`, or `outputs/shared/` paths.
+Project Profile output root.
 
 ## Skill Receipt Rules
 
@@ -232,7 +227,8 @@ Record a receipt for every required skill after reading its `SKILL.md`:
 ```bash
 python3 tools/run_state.py \
   --run-id feature-login-20260708 \
-  --product-line v2 \
+  --project-id shop-platform \
+  --track storefront \
   --required-skill agent-next \
   --loaded-skill agent-next \
   --skill-receipt agent-next=skills/agent-next/SKILL.md
@@ -256,15 +252,14 @@ python3 tools/copy_template.py \
   --artifact-id REQ-SPEC-001 \
   --source-artifact feishu:doc-001 \
   --evidence zentao:story-001 \
-  --destination outputs/v2/requirements/requirement-spec.md
+  --destination outputs/shop-platform/requirements/requirement-spec.md
 ```
 
 When the run state exists, the tool also records the artifact under
 `artifacts[]` with metadata required by the stage gate.
 
-Use `runs/<run-id>/` for durable run state and gate records. Use
-`outputs/v1/`, `outputs/v2/`, `outputs/shared/`, and
-`outputs/releases/<release>/` for deliverable artifacts.
+Use `runs/<run-id>/` for durable run state and gate records. Use the Project
+Profile `artifacts.root` for deliverable artifacts.
 
 ## Confirmation Rules
 
@@ -304,14 +299,15 @@ python3 tools/stage_gate.py \
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "run_id": "feature-login-20260708",
-  "product_line": "v2",
+  "project_id": "shop-platform",
+  "tracks": ["storefront"],
   "entry": "feature-quality",
   "workflow": "workflows/feature-quality/README.md",
   "phase": "Intake",
-  "required_skills": ["agent-next", "epvs-requirement"],
-  "loaded_skills": ["agent-next", "epvs-requirement"],
+  "required_skills": ["agent-next", "requirement-analysis"],
+  "loaded_skills": ["agent-next", "requirement-analysis"],
   "skill_receipts": [],
   "repositories": {
     "dev": [],

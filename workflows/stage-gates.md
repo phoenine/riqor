@@ -95,7 +95,7 @@ Every phase must satisfy these checks:
 |---|---|
 | Run state exists | `runs/<run-id>/state.json` or equivalent durable state. |
 | Run state version current | `schema_version` matches the current schema contract. Legacy states require explicit migration. |
-| Project and owning tracks selected | New runs record `project_id` and one or more Project Profile `tracks`; legacy runs may still carry `product_line`. |
+| Project and owning tracks selected | Runs record `project_id` and one or more Project Profile `tracks`. |
 | Release scope tracks selected | Release-acceptance baseline and scope phases record one or more Project Profile `release_scope_tracks`. |
 | Workflow selected | `entry`, `workflow`, and `phase` are recorded. |
 | Skills declared | `required_skills` includes the router skill and all phase-specific skills. |

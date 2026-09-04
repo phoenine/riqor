@@ -17,7 +17,6 @@ class RunStateTests(unittest.TestCase):
                 runs_root=Path(tmp),
                 project_id=None,
                 track=[],
-                product_line=None,
                 release_scope_track=[],
                 entry=None,
                 workflow=None,
@@ -60,7 +59,6 @@ class RunStateTests(unittest.TestCase):
                 runs_root=Path(tmp),
                 project_id="shop-platform",
                 track=["storefront", "api"],
-                product_line=None,
                 entry="feature-quality",
                 workflow=None,
                 phase="Intake",
@@ -89,14 +87,14 @@ class RunStateTests(unittest.TestCase):
 
             self.assertEqual(data["project_id"], "shop-platform")
             self.assertEqual(data["tracks"], ["storefront", "api"])
-            self.assertEqual(data["product_line"], "")
 
     def test_create_minimal_state(self):
         with TemporaryDirectory() as tmp:
             args = Namespace(
                 run_id="demo",
                 runs_root=Path(tmp),
-                product_line="v2",
+                project_id="shop-platform",
+                track=["storefront"],
                 entry="feature-quality",
                 workflow="workflows/feature-quality/README.md",
                 phase="Intake",
@@ -114,9 +112,10 @@ class RunStateTests(unittest.TestCase):
             path = run_state.update_state(args)
             data = json.loads(path.read_text())
 
-            self.assertEqual(data["schema_version"], 2)
+            self.assertEqual(data["schema_version"], 3)
             self.assertEqual(data["run_id"], "demo")
-            self.assertEqual(data["product_line"], "v2")
+            self.assertEqual(data["project_id"], "shop-platform")
+            self.assertEqual(data["tracks"], ["storefront"])
             self.assertEqual(data["entry"], "feature-quality")
             self.assertEqual(data["required_skills"], ["agent-next", "requirement-analysis"])
             self.assertEqual(data["loaded_skills"], ["agent-next", "requirement-analysis"])
@@ -148,7 +147,8 @@ class RunStateTests(unittest.TestCase):
             args = Namespace(
                 run_id="demo",
                 runs_root=Path(tmp),
-                product_line="v2",
+                project_id="shop-platform",
+                track=["storefront"],
                 entry="bug-regression",
                 workflow=None,
                 phase="Bug Intake",
@@ -182,8 +182,9 @@ class RunStateTests(unittest.TestCase):
             args = Namespace(
                 run_id="release-demo",
                 runs_root=Path(tmp),
-                product_line="v2",
-                release_scope_track=["v1", "v2", "shared"],
+                project_id="shop-platform",
+                track=["storefront"],
+                release_scope_track=["storefront", "payments"],
                 entry="release-acceptance",
                 workflow="workflows/release-acceptance/README.md",
                 phase="Release Baseline",
@@ -210,14 +211,15 @@ class RunStateTests(unittest.TestCase):
 
             path = run_state.update_state(args)
             data = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(data["release_scope_tracks"], ["v1", "v2", "shared"])
+            self.assertEqual(data["release_scope_tracks"], ["storefront", "payments"])
 
     def test_normalizes_phase_alias_on_write(self):
         with TemporaryDirectory() as tmp:
             args = Namespace(
                 run_id="demo",
                 runs_root=Path(tmp),
-                product_line="v2",
+                project_id="shop-platform",
+                track=["storefront"],
                 entry="feature-quality",
                 workflow="workflows/feature-quality/README.md",
                 phase="intake",
@@ -251,7 +253,8 @@ class RunStateTests(unittest.TestCase):
             args = Namespace(
                 run_id="demo",
                 runs_root=Path(tmp),
-                product_line="v2",
+                project_id="shop-platform",
+                track=["storefront"],
                 entry="feature-quality",
                 workflow="workflows/feature-quality/README.md",
                 phase="Risk Analysis",
@@ -261,8 +264,8 @@ class RunStateTests(unittest.TestCase):
                 required_env=[],
                 checked_env=[],
                 target=None,
-                repository=["kind=dev,name=newepvs-demo,path=repositories/dev/newepvs-demo,commit=abc123"],
-                repository_evidence=["repo=newepvs-demo,evidence_type=file,reference=src/App.tsx,supports=RISK-001"],
+                repository=["kind=dev,name=storefront-demo,path=repositories/dev/storefront-demo,commit=abc123"],
+                repository_evidence=["repo=storefront-demo,evidence_type=file,reference=src/App.tsx,supports=RISK-001"],
                 knowledge_used=["path=skills/test-case-design/references/case-writing-rules.md,purpose=术语确认"],
                 knowledge_plan_status="not-needed",
                 knowledge_plan_summary="未发现需要补充的领域术语。",
@@ -279,7 +282,7 @@ class RunStateTests(unittest.TestCase):
             path = run_state.update_state(args)
             data = json.loads(path.read_text())
 
-            self.assertEqual(data["repositories"]["dev"][0]["name"], "newepvs-demo")
+            self.assertEqual(data["repositories"]["dev"][0]["name"], "storefront-demo")
             self.assertEqual(data["repository_evidence"][0]["references"], ["src/App.tsx"])
             self.assertEqual(data["knowledge_used"][0]["used_for"], ["术语确认"])
             self.assertEqual(data["knowledge_plan"]["status"], "not_needed")
@@ -293,7 +296,8 @@ class RunStateTests(unittest.TestCase):
             args = Namespace(
                 run_id="demo",
                 runs_root=Path(tmp),
-                product_line=None,
+                project_id=None,
+                track=[],
                 entry=None,
                 workflow=None,
                 phase=None,
@@ -312,7 +316,7 @@ class RunStateTests(unittest.TestCase):
                 knowledge_plan_confirmed_by=None,
                 knowledge_plan_confirmed_at=None,
                 knowledge_proposed_update=[
-                    "path=knowledge/epvs/01-术语定义/new-term.md,summary=新增术语,status=proposed"
+                    "path=knowledge/shop-platform/01-术语定义/new-term.md,summary=新增术语,status=proposed"
                 ],
                 confirmation=[],
                 trace=[],

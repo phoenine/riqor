@@ -10,7 +10,7 @@
 
 **Repository:** Project Profile product repositories, Project Profile automation repositories
 
-**Environment:** `TEST_SERVER_*`, `EPVS_TEST_*`, `GITLAB_*` (as needed)
+**Environment:** Project Profile environment groups (as needed)
 
 **Gate:** 未锁定版本、环境、Project Profile tracks 和仓库 revision 前，不收集最终范围或跑自动化。一个 release bundle 可覆盖多个项目 track；单个资产仍记录自己的 owning track。
 

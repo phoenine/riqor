@@ -23,9 +23,10 @@ def skill_receipt(skill, phase):
 def valid_state(**overrides):
     gate_results_overridden = "gate_results" in overrides
     state = {
-        "schema_version": 2,
+        "schema_version": 3,
         "run_id": "demo",
-        "product_line": "v2",
+        "project_id": "shop-platform",
+        "tracks": ["storefront"],
         "entry": "feature-quality",
         "workflow": "workflows/feature-quality/README.md",
         "phase": "Intake",
@@ -102,7 +103,7 @@ class StageGateTests(unittest.TestCase):
 
     def test_schema_version_must_be_current(self):
         state = valid_state(schema_version=1)
-        self.assertIn("schema_version must be 2", stage_gate.check_state(state))
+        self.assertIn("schema_version must be 3", stage_gate.check_state(state))
 
     def test_missing_loaded_skill_fails(self):
         state = valid_state()
@@ -122,13 +123,13 @@ class StageGateTests(unittest.TestCase):
         self.assertIn("confirmation not satisfied: run automation (required)", stage_gate.check_state(state))
 
     def test_generic_project_and_track_identity_passes(self):
-        state = valid_state(project_id="shop-platform", tracks=["storefront"], product_line="")
+        state = valid_state(project_id="shop-platform", tracks=["storefront"])
         self.assertEqual(stage_gate.check_state(state), [])
 
-    def test_missing_generic_and_legacy_identity_fails(self):
-        state = valid_state(project_id="", tracks=[], product_line="")
+    def test_missing_project_identity_fails(self):
+        state = valid_state(project_id="", tracks=[])
         self.assertIn(
-            "run identity requires project_id with tracks, or legacy product_line",
+            "run identity requires project_id with tracks",
             stage_gate.check_state(state),
         )
 
@@ -140,7 +141,6 @@ class StageGateTests(unittest.TestCase):
         state = valid_state(
             project_id="shop-platform",
             tracks=["backend"],
-            product_line="",
             entry="bug-regression",
             workflow="workflows/bug-regression/README.md",
             phase="Bug Intake",
@@ -305,7 +305,7 @@ class StageGateTests(unittest.TestCase):
         state = valid_state(phase="Optional Case Execute")
         add_skill(state, "automation", "Optional Case Execute")
         state["notes"] = [
-            "data_injection: asset=ASSET:12345 cycle=BSOL015-RB01-TEST queue=edca.cip-data rate=10 duration=10s"
+            "data_injection: dataset=fixture-001 generator=seed-script"
         ]
         self.assertEqual(stage_gate.check_state(state, strict_phase=True), [])
 
@@ -331,7 +331,7 @@ class StageGateTests(unittest.TestCase):
         add_skill(state, "test-case-design", "Regression Plan")
         add_skill(state, "automation", "Regression Plan")
         add_skill(state, "reporting", "Regression Plan")
-        artifact_rel = "outputs/shared/regression/_stage_gate_test_plan.md"
+        artifact_rel = "outputs/shop-platform/regression/_stage_gate_test_plan.md"
         artifact_path = Path(__file__).resolve().parents[1] / artifact_rel
         artifact_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -433,7 +433,7 @@ class StageGateTests(unittest.TestCase):
             {
                 "id": "REG-PLAN-001",
                 "type": "regression_plan",
-                "path": "outputs/shared/regression/demo-regression-plan.md",
+                "path": "outputs/shop-platform/regression/demo-regression-plan.md",
                 "producer_phase": "Regression Plan",
                 "source_artifacts": [],
                 "evidence": [],
@@ -443,54 +443,6 @@ class StageGateTests(unittest.TestCase):
         errors = stage_gate.check_state(state, strict_phase=True)
         self.assertIn(
             "phase Regression Plan requires artifact type: test_cases when decision_path is supplement_cases",
-            errors,
-        )
-
-    def test_bug_regression_frontend_artifact_must_use_product_line_root(self):
-        state = valid_state(
-            entry="bug-regression",
-            workflow="workflows/bug-regression/README.md",
-            product_line="v2",
-            notes=["bug_surface: frontend"],
-        )
-        state["artifacts"] = [
-            {
-                "id": "REG-001",
-                "type": "regression_plan",
-                "path": "outputs/shared/regression/demo.md",
-                "producer_phase": "Regression Plan",
-                "source_artifacts": [],
-                "evidence": [],
-                "validation": {"status": "pending"},
-            }
-        ]
-        errors = stage_gate.check_state(state)
-        self.assertTrue(
-            any("must start with outputs/v2/" in error for error in errors),
-            errors,
-        )
-
-    def test_bug_regression_backend_artifact_rejects_product_line_root(self):
-        state = valid_state(
-            entry="bug-regression",
-            workflow="workflows/bug-regression/README.md",
-            product_line="v2",
-            notes=["bug_surface: backend"],
-        )
-        state["artifacts"] = [
-            {
-                "id": "REG-001",
-                "type": "regression_plan",
-                "path": "outputs/v2/regression/demo.md",
-                "producer_phase": "Regression Plan",
-                "source_artifacts": [],
-                "evidence": [],
-                "validation": {"status": "pending"},
-            }
-        ]
-        errors = stage_gate.check_state(state)
-        self.assertTrue(
-            any("must start with outputs/shared/" in error for error in errors),
             errors,
         )
 
@@ -535,7 +487,7 @@ class StageGateTests(unittest.TestCase):
             entry="release-acceptance",
             workflow="workflows/release-acceptance/README.md",
             phase="Release Baseline",
-            release_scope_tracks=["v1", "v2", "shared"],
+            release_scope_tracks=["storefront", "payments"],
             notes=["release_baseline: tag=v2.8.0 env=uat"],
             knowledge_used=[{"path": "skills/test-case-design/references/case-writing-rules.md", "used_for": ["release routing"]}],
             repository_evidence=[
@@ -571,8 +523,8 @@ class StageGateTests(unittest.TestCase):
         add_skill(state, "automation", "Acceptance Execution")
         add_skill(state, "release-acceptance", "Acceptance Execution")
         state["notes"] = [
-            "automation_execution_plan: API=envision-apitest Web=envision-webtest commands confirmed",
-            "data_injection: asset=ASSET:12345 cycle=TEST queue=edca.cip-data rate=10 duration=10s"
+            "automation_execution_plan: API=pytest Web=playwright commands confirmed",
+            "data_injection: dataset=fixture-001 generator=seed-script"
         ]
         self.assertEqual(stage_gate.check_state(state, strict_phase=True), [])
 

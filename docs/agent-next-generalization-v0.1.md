@@ -10,7 +10,7 @@
 
 ## 1. 文档目的
 
-本文定义 Agent-next 从 ePVS 专用测试工作区演进为通用、可开源、可适配不同项目的测试工程 Agent 平台所需的产品交互、核心模型、工作流契约和 v0.1 实现范围。
+本文定义 Agent-next 作为通用、可开源、可适配不同项目的测试工程 Agent 平台所需的产品交互、核心模型、工作流契约和 v0.1 实现范围。
 
 本设计重点解决以下问题：
 
@@ -60,7 +60,9 @@ Agent-next 不是单纯的文档生成器，也不是隐藏规则的一键测试
 
 ### 3.7 项目专属能力不进入 Core
 
-ePVS、禅道、特定 GitLab 组、v1/v2 分支和特定自动化仓库都应通过 Profile 或 Skill 提供，不能成为 Core 的固定枚举。已有 Skill 或 CLI 能完成集成时，不得为了形式统一重新实现 Adapter。
+具体产品、平台、仓库、分支和环境策略都应通过下游 Profile 或 Skill
+扩展提供，不能成为 Core 的固定枚举或随通用仓库分发。已有 Skill 或 CLI
+能完成集成时，不得为了形式统一重新实现 Adapter。
 
 ## 4. 总体架构
 
@@ -69,7 +71,7 @@ Agent-next 分为四层：
 | 层级 | 主要职责 | 示例 |
 |---|---|---|
 | Core Engine | 资产、依赖、Planner、Run State、Gate、溯源、确认 | 通用 |
-| Project Profile | 项目、Track、仓库、知识库、环境、策略 | ePVS、商城、数据平台 |
+| Project Profile | 项目、Track、仓库、知识库、环境、策略 | 商城、数据平台 |
 | Workflow Pack | Feature、Bug、Release 及项目自定义流程 | Feature Quality |
 | Skills / Optional Adapters | Skill 编排现有 CLI、仓库和测试框架；仅在确有共享驱动需求时增加薄 Adapter | GitHub、GitLab、禅道、Playwright |
 
@@ -87,8 +89,7 @@ agent-new/
 ├── knowledge/
 │   └── <project-id>/
 ├── profiles/
-│   ├── default/
-│   └── epvs/
+│   └── default/
 ├── workflows/
 │   ├── feature-quality/
 │   ├── bug-regression/
@@ -132,7 +133,8 @@ project:
   default_track: backend
 ```
 
-`tracks` 是项目自定义标签。ePVS 的 `v1`、`v2` 可以继续存在，但只作为 ePVS Project Profile 中的 track，不再是 Core 枚举。
+`tracks` 是项目自定义标签，具体取值只存在于对应 Project Profile 中，不是
+Core 枚举。
 
 ### 5.2 Resource
 
@@ -565,8 +567,8 @@ confidence: medium
 
 ### 9.7 用例平台同步
 
-禅道通过 Skill 接入。通用 Capability 为 `case-management-sync`，现有
-`epvs-zentao-sync` 与 `zentao-cli` 应参数化迁移为 `zentao-sync`，不得重写禅道客户端。
+禅道通过 Skill 接入。通用 Capability 为 `case-management-sync`，现有客户端
+能力应通过参数化的 `zentao-sync` Skill 复用，不得重写禅道客户端。
 
 同步流程：
 
@@ -810,8 +812,8 @@ events: []
 
 与旧模型相比：
 
-- `project_id` 取代全局 ePVS 假设。
-- `tracks[]` 取代 `product_line: v1/v2`。
+- `project_id` 取代任何全局单项目假设。
+- `tracks[]` 由各 Project Profile 自行定义，Core 不提供产品线字段。
 - `goal` 和 `current_capability` 取代要求用户理解的固定 phase。
 - Workflow 和 Capability 均由声明式配置解析。
 - `events[]` 记录状态变化，用于恢复和解释。
@@ -918,31 +920,19 @@ outputs/<project-id>/
 
 Release 资产仍应引用 Feature/Bug 资产，而不是复制它们。
 
-## 17. ePVS 兼容 Profile
+## 17. 项目扩展边界
 
-现有 Agent-next 的 ePVS 能力应迁移为 `profiles/epvs/`，内容包括：
-
-- v1/v2 Track 定义
-- ePVS 知识库
-- 现有 dev/test/tools 仓库映射
-- `zentao-sync` Skill 配置和模块映射
-- envision-api/web 自动化 Skill
-- ePVS 专属模板扩展
-- 数据注入和 Release 验收规则
+具体项目的 Track、知识、仓库映射、自动化规则、数据准备和验收策略不得随
+通用仓库分发。它们应由使用方在下游 Project Profile、私有 Skill 包或本地环境中
+提供。通用仓库只维护这些扩展所依赖的 Schema、Skill slot、确认门禁和无业务含义
+的示例。
 
 迁移原则：
 
-1. 先保证现有 Feature、Bug、Release 路径能够由新 Core 执行。
-2. Agent-new 不读取旧 Run State 或旧 `outputs/v1|v2|shared` 作为 Core Inventory。
-3. 需要保留的旧产物通过 `register` 显式登记到新的 Run Artifact Registry。
-4. 通用 Core 的测试不得依赖 ePVS 数据或目录。
-5. ePVS Profile 的集成测试验证迁移后的关键门禁一致。
-
-公开仓库提供 `profiles/epvs/project.example.yaml` 作为无敏感信息的 Project Profile
-接口，并由 `profiles/epvs/profile.yaml` 保存旧 Track、仓库组、Skill 和输出路由映射。
-真实知识、仓库 revision、禅道模块 ID、环境端点与凭证只能进入私有的
-`config/projects/epvs.yaml` 或本地环境。受控 fixture 可验证迁移契约，但不能替代使用
-历史输入、私有仓库和获批外部操作的真实迁移对照。
+1. 通用 Core 不读取旧项目 Run State 或项目专属输出目录作为 Core Inventory。
+2. 需要保留的旧产物通过 `register` 显式登记到新的 Run Artifact Registry。
+3. Core 测试不得依赖任何真实项目的数据、目录、凭证或私有 Skill。
+4. 项目扩展的兼容验证在其下游包中完成。
 
 ## 18. v0.1 实现范围
 
@@ -962,7 +952,7 @@ Release 资产仍应引用 Feature/Bug 资产，而不是复制它们。
 - 文件系统型文档/仓库 Skill 与 Project Profile 路由
 - Skill slot 映射和 mock Skill；Adapter 只在现有能力无法复用时实现薄驱动
 - `doctor`、`inventory`、`plan`、`run`、`status`、`explain`
-- ePVS Profile 兼容方案和迁移测试
+- 下游项目扩展接口和通用契约测试
 
 ### 18.2 可以延后
 
@@ -1008,11 +998,10 @@ Release 资产仍应引用 Feature/Bug 资产，而不是复制它们。
 - 将现有 API/Web 自动化 Skills 接入 Profile slot，不重新实现测试框架。
 - 完成执行记录和报告汇总。
 
-### M5：ePVS 迁移
+### M5：扩展接口验证
 
-- 建立 ePVS Profile。
-- 迁移知识、仓库路由和专属 Skills。
-- 用现有典型 Feature、Bug 和 Release 场景验证兼容性。
+- 验证下游 Profile 和私有 Skill 能接入通用契约。
+- 用无业务含义的示例验证仓库路由和三类工作流。
 
 ## 20. v0.1 验收标准
 
@@ -1029,7 +1018,7 @@ v0.1 至少通过以下场景：
 9. **Bug 回归**：能够从 Bug 描述或修复 diff 形成影响分析、覆盖匹配、计划和报告。
 10. **Release 验收**：能够汇总多个 Track，记录 Scope Gap，并引用已有测试资产。
 11. **项目隔离**：两个 Project 的配置、知识、Run 和 Output 不互相污染。
-12. **ePVS 兼容**：ePVS Profile 可以表达现有 v1/v2、仓库、知识和三类工作流。
+12. **扩展隔离**：具体项目的 Profile、知识和 Skill 不进入通用仓库。
 
 ## 21. 测试策略
 
@@ -1098,7 +1087,7 @@ details:
 4. Project Profile 是否支持继承多个 Profile。
 5. 本地知识库是否继续采用 `related.path` 显式路由，或引入独立索引文件。
 6. v0.1 首个真实开源示例项目选用什么技术栈和业务场景。
-7. ePVS 迁移采用同仓 Profile，还是作为独立私有扩展包。
+7. 下游扩展包采用何种版本和兼容策略。
 
 ## 24. 最终用户心智模型
 

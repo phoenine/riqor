@@ -14,7 +14,6 @@ class RepositoryLayoutTests(unittest.TestCase):
             "docs",
             "knowledge",
             "profiles/default",
-            "profiles/epvs",
             "workflows/feature-quality",
             "workflows/bug-regression",
             "workflows/release-acceptance",

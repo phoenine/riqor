@@ -4,24 +4,11 @@
   "title": "agent-next run state",
   "type": "object",
   "additionalProperties": false,
-  "anyOf": [
-    {
-      "required": ["project_id", "tracks"],
-      "properties": {
-        "project_id": {"type": "string", "minLength": 1},
-        "tracks": {"type": "array", "minItems": 1}
-      }
-    },
-    {
-      "required": ["product_line"],
-      "properties": {
-        "product_line": {"type": "string", "minLength": 1}
-      }
-    }
-  ],
   "required": [
     "schema_version",
     "run_id",
+    "project_id",
+    "tracks",
     "entry",
     "workflow",
     "phase",
@@ -41,23 +28,21 @@
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 2
+      "const": 3
     },
     "run_id": {
       "type": "string",
       "minLength": 1
     },
     "project_id": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "tracks": {
       "type": "array",
+      "minItems": 1,
       "items": {"type": "string", "minLength": 1},
       "uniqueItems": true
-    },
-    "product_line": {
-      "type": "string",
-      "deprecated": true
     },
     "release_scope_tracks": {
       "type": "array",

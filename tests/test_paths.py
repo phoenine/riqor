@@ -43,8 +43,8 @@ class PathsTests(unittest.TestCase):
 
     def test_managed_repo_path_accepts_output_path(self):
         self.assertEqual(
-            paths.resolve_managed_repo_path("outputs/v2/demo.md", "outputs"),
-            paths.AGENT_NEXT_ROOT / "outputs/v2/demo.md",
+            paths.resolve_managed_repo_path("outputs/shop-platform/demo.md", "outputs"),
+            paths.AGENT_NEXT_ROOT / "outputs/shop-platform/demo.md",
         )
 
 

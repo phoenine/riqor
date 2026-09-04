@@ -86,7 +86,7 @@ class ArtifactLifecycleTests(unittest.TestCase):
             source = write_ready(root, "PRD-001", "prd", "checkout")
             (root / "runs/demo").mkdir(parents=True)
             (root / "runs/demo/state.json").write_text(
-                '{"schema_version": 2, "run_id": "demo"}\n', encoding="utf-8"
+                '{"schema_version": 3, "run_id": "demo"}\n', encoding="utf-8"
             )
             capability = next(
                 item
@@ -116,7 +116,7 @@ class ArtifactLifecycleTests(unittest.TestCase):
             source = write_ready(root, "PRD-001", "prd", "checkout")
             (root / "runs/demo").mkdir(parents=True)
             (root / "runs/demo/state.json").write_text(
-                '{"schema_version": 2, "run_id": "demo"}\n', encoding="utf-8"
+                '{"schema_version": 3, "run_id": "demo"}\n', encoding="utf-8"
             )
             capability = next(
                 item
@@ -152,7 +152,7 @@ class ArtifactLifecycleTests(unittest.TestCase):
             )
             state_path = root / "runs/demo/state.json"
             state_path.parent.mkdir(parents=True, exist_ok=True)
-            state_path.write_text('{"run_id": "demo", "schema_version": 2}\n', encoding="utf-8")
+            state_path.write_text('{"run_id": "demo", "schema_version": 3}\n', encoding="utf-8")
             result = scaffold_artifact(
                 root=root,
                 profile=PROFILE,
@@ -165,7 +165,7 @@ class ArtifactLifecycleTests(unittest.TestCase):
             )
             complete_sections(root / result.content_path)
             state_path.write_text(
-                '{"schema_version": 2, "run_id": "demo", '
+                '{"schema_version": 3, "run_id": "demo", '
                 f'"artifacts": [{{"id": "REQ-001", "path": "{result.content_path}"}}]}}\n',
                 encoding="utf-8",
             )

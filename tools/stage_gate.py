@@ -209,9 +209,6 @@ PHASE_RULES: dict[tuple[str, str], dict[str, Any]] = {
     },
 }
 
-BUG_SURFACES = frozenset({"frontend", "backend", "other"})
-
-
 def load_state(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
         return json.load(fh)
@@ -357,63 +354,6 @@ def check_repository_evidence_records(state: dict[str, Any]) -> list[str]:
     return errors
 
 
-def parse_bug_surface(state: dict[str, Any]) -> str | None:
-    for note in state.get("notes", []):
-        text = str(note)
-        if not text.startswith("bug_surface:"):
-            continue
-        value = text.split(":", 1)[1].strip().split()[0].lower()
-        if value in BUG_SURFACES:
-            return value
-    return None
-
-
-def allowed_bug_output_prefix(state: dict[str, Any]) -> str | None:
-    # Generic runs route through Project Profile artifacts.root in R3. Preserve
-    # the historical directory rule only for legacy product_line states.
-    if str(state.get("project_id", "")).strip():
-        return None
-    surface = parse_bug_surface(state)
-    if surface is None:
-        return None
-    if surface == "frontend":
-        tracks = state.get("tracks") or []
-        owning_track = tracks[0] if len(tracks) == 1 else state.get("product_line")
-        if owning_track:
-            return f"outputs/{owning_track}/"
-        return None
-    return "outputs/shared/"
-
-
-def check_bug_regression_output_paths(state: dict[str, Any]) -> list[str]:
-    if state.get("entry") != "bug-regression":
-        return []
-    if str(state.get("project_id", "")).strip():
-        return []
-
-    errors: list[str] = []
-    surface = parse_bug_surface(state)
-    if surface is None:
-        return errors
-
-    allowed_prefix = allowed_bug_output_prefix(state)
-    if not allowed_prefix:
-        errors.append("bug_surface frontend requires exactly one owning track for output routing")
-        return errors
-
-    for artifact in state.get("artifacts", []):
-        artifact_id = artifact.get("id", "<unknown>")
-        path = str(artifact.get("path", "")).strip().replace("\\", "/")
-        if not path:
-            continue
-        if not path.startswith(allowed_prefix):
-            errors.append(
-                f"artifact {artifact_id} path must start with {allowed_prefix} "
-                f"for bug_surface={surface}, got: {path}"
-            )
-    return errors
-
-
 def check_templated_artifacts(
     state: dict[str, Any], *, repo_root: Path | None = None
 ) -> list[str]:
@@ -521,9 +461,8 @@ def check_global_state(
 
     project_id = str(state.get("project_id", "")).strip()
     tracks = state.get("tracks", [])
-    product_line = str(state.get("product_line", "")).strip()
-    if not (project_id and isinstance(tracks, list) and tracks) and not product_line:
-        errors.append("run identity requires project_id with tracks, or legacy product_line")
+    if not (project_id and isinstance(tracks, list) and tracks):
+        errors.append("run identity requires project_id with tracks")
 
     phase_error = phase_validation_error(state.get("entry"), str(state.get("phase", "")))
     if phase_error:
@@ -632,7 +571,6 @@ def check_global_state(
             except ValueError as exc:
                 errors.append(f"artifact {artifact_id} has invalid output path: {exc}")
 
-    errors.extend(check_bug_regression_output_paths(state))
     errors.extend(check_repository_evidence_records(state))
     errors.extend(check_templated_artifacts(state, repo_root=repo_root))
     errors.extend(check_test_case_artifacts(state, repo_root=repo_root))

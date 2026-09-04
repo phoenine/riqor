@@ -26,7 +26,8 @@ class CopyTemplateTests(unittest.TestCase):
                 Namespace(
                     run_id="demo",
                     runs_root=runs_root,
-                    product_line="v2",
+                    project_id="shop-platform",
+                    track=["storefront"],
                     entry="feature-quality",
                     workflow="workflows/feature-quality/README.md",
                     phase="Requirement Specification",

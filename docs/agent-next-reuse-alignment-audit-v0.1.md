@@ -1,7 +1,7 @@
 # Agent-next → Agent-new 复用与通用化对齐审计 v0.1
 
 > 日期：2026-09-02  
-> 状态：R1、R2、R3 已完成；R4 本地兼容契约已验证，真实场景待授权执行
+> 状态：R1、R2、R3 已完成；项目专属兼容包不随通用仓库分发
 > 对齐基线：现有 `agent-next` 实现 + `agent-next-generalization-v0.1.md`
 
 ## 1. 审计目的
@@ -16,7 +16,7 @@
 后续开发必须同时满足两项约束：
 
 1. 不丢失 Agent-next 已经证明有效的执行能力和安全门禁。
-2. 不把 ePVS、v1/v2、具体仓库和私有知识固化进通用 Core。
+2. 不把具体产品、Track、仓库和私有知识固化进通用 Core。
 
 ## 2. 审计范围与证据
 
@@ -51,7 +51,7 @@
 ### 3.2 应当保留的 Agent-new 新增价值
 
 - Project Profile Schema 与项目隔离。
-- 自定义 `tracks[]`，替代 Core 中固定的 v1/v2 枚举。
+- 自定义 `tracks[]`，Core 不提供固定产品线枚举。
 - 标准知识库初始化与 Knowledge Gap。
 - Artifact Inventory、revision 与 stale 传播。
 - 声明式 Capability 依赖和目标 Planner。
@@ -68,17 +68,17 @@
 | Feature Workflow | 8 个阶段、按需加载 Phase 和 Skill | 4 个 Capability | 迁移原 Workflow；Capability 仅作为可机器读取的索引 |
 | Bug Regression | 8 个阶段，含 Intake、Decision Gate、执行和报告 | 6 个线性 Capability | 迁移原 Workflow；保留无 Artifact 的 Intake/Decision 语义 |
 | Release Acceptance | 6 个阶段、Scope Gap、资产引用与结论门禁 | 4 个 Capability | 迁移原 Workflow 和 bundle 路由；Planner 只负责目标依赖 |
-| Run State | Schema v2、创建、校验、迁移和恢复工具 | 尚未实现 | 复用并将 `product_line` 参数化为 Project/Track 兼容模型 |
+| Run State | Schema v2、创建、校验、迁移和恢复工具 | 尚未实现 | 复用并以 Project/Track 作为唯一项目身份模型 |
 | Stage Gate | 849 行机器规则，检查 Skill receipt、知识、仓库、环境、确认、Artifact 和追溯 | 仅检查章节和上游 revision | 复用原 Stage Gate；当前 Gate 降级为 Artifact 内容 validator/facade |
 | 模板创建 | `copy_template.py`，强制 frontmatter 并登记 Run State | 自行渲染 `.tmpl` 和 sidecar manifest | 复用 `copy_template.py`，扩展项目字段，不维护第二套弱模板 |
 | Artifact 校验 | `validate_artifact.py`、`validate_test_cases.py`、类型专属规则 | section marker 完整性 | 原 Validator 为权威；新 Schema 可作为补充契约 |
-| 需求分析 | `epvs-requirement` Skill + references | 无执行 Skill | 从现有 Skill 提取通用 `requirement`，ePVS 来源放 Profile 扩展 |
-| 风险/测试点 | `epvs-test-points` + 方法论和源码证据规则 | 只有模板和 Capability | 从现有 Skill 参数化迁移，不重新编写方法论 |
-| 测试用例 | `epvs-test-cases` + 三份强制 references + validator | 简化模板 | 复用原 Skill、references、模板和 validator |
-| 自动化分类 | `epvs-automation`、解析/分类/转换计划工具 | 尚未实现 | 参数化迁移现有工具；不新造分类引擎 |
-| API/Web 自动化 | `envision-apitest`、`envision-webtest` Skill | 空 Adapter 目录 | 保留为 ePVS Profile/私有扩展；通用层定义 Skill slot |
-| 禅道 | `epvs-zentao-sync` + `zentao-cli` + confirmation gate | 尚未实现，曾计划 Adapter | 提取为 `zentao-sync` Skill；不重写禅道 API 客户端 |
-| 报告 | `epvs-reporting` + run-summary/regression/acceptance 模板 | 部分简化模板 | 参数化迁移现有 Skill 和模板 |
+| 需求分析 | 旧项目 Skill + references | 无执行 Skill | 提取通用 `requirement-analysis`，项目来源不进入 Core |
+| 风险/测试点 | 旧项目 Skill + 方法论和源码证据规则 | 只有模板和 Capability | 参数化迁移为 `test-analysis`，不重新编写方法论 |
+| 测试用例 | 旧项目 Skill + 三份强制 references + validator | 简化模板 | 复用 references、模板和 validator，命名通用化 |
+| 自动化分类 | 旧项目 Skill、解析/分类/转换计划工具 | 尚未实现 | 参数化迁移为 `automation`；不新造分类引擎 |
+| API/Web 自动化 | 项目测试框架 Skill | 空 Adapter 目录 | 留在下游私有扩展；通用层定义 Skill slot |
+| 禅道 | 旧同步 Skill + `zentao-cli` + confirmation gate | 尚未实现，曾计划 Adapter | 提取为 `zentao-sync` Skill；不重写禅道 API 客户端 |
+| 报告 | 旧项目 Skill + run-summary/regression/acceptance 模板 | 部分简化模板 | 参数化迁移为 `reporting` |
 | 仓库路由 | `config/projects.yaml`、`paths.py`、`validate_projects.py` | Project Profile repository list | Project Profile 成为通用入口；复用路径和校验工具并兼容旧配置 |
 | Knowledge | 成熟知识 Schema、validator、索引同步和使用记录 | 通用知识模板/Schema | 合并：保留通用分类，迁移 validator/索引/knowledge_used 机制 |
 
@@ -114,7 +114,7 @@ Agent-next 模板包含 YAML frontmatter、来源证据、知识使用、详细�
 - 前置条件、测试数据、步骤与预期结果的一一对应。
 - 覆盖摘要和覆盖缺口。
 
-不能以新模板替换旧模板。应从旧模板做去 ePVS 参数化，而不是重新设计弱模板。
+不能以新模板替换旧模板。应从旧模板做项目无关的参数化，而不是重新设计弱模板。
 
 ### P1：Capability YAML 不是完整 Workflow
 
@@ -142,7 +142,7 @@ Agent-next 将 Release Baseline/Scope 主要记录在 Run State 和 release bund
 
 设计文档同时使用了 “Adapters / Skills” 和具体 Adapter 接口，但 Agent-next 的真实
 集成方式是：Workflow 选择 Skill，Skill 调用已有 CLI、仓库工具或项目测试框架，
-Stage Gate 负责确认与证据。禅道已经通过 `epvs-zentao-sync` + `zentao-cli` 工作，
+Stage Gate 负责确认与证据。禅道已经通过同步 Skill + `zentao-cli` 工作，
 没有必要再次实现 `CaseManagementAdapter`。
 
 审计已经将设计文档纠正为 Skill-first，但当前
@@ -193,8 +193,8 @@ integrations:
 | 流程阶段和门禁 | Workflow Pack + Stage Gate |
 | 需求/风险/测试设计方法 | 通用 Skills |
 | 禅道同步规则 | `zentao-sync` Skill |
-| ePVS v1/v2、仓库和自动化分支 | ePVS Profile |
-| envision API/Web 具体实现方式 | ePVS Profile Skills / 私有扩展 |
+| 具体项目的 Track、仓库和自动化分支 | 下游 Project Profile |
+| 项目测试框架的具体实现方式 | 下游私有 Skills |
 | 凭证 | 环境变量或 Secret Provider，永不进入 Profile/Run State |
 
 ## 7. Agent-new 当前文件处置决定
@@ -245,13 +245,13 @@ integrations:
 
 ### 7.4 参数化迁移，不直接进入 Core
 
-- `product_line: v1/v2` → Project Profile `tracks[]`，ePVS Profile 保留兼容映射。
-- `outputs/v1|v2|shared` → Project Profile 输出路由，ePVS Profile 保留旧目录兼容。
+- 旧产品线字段 → Project Profile `tracks[]`；Core 不解释旧值。
+- 项目专属输出目录 → Project Profile 输出路由，Core 不保留旧目录默认值。
 - `repositories/dev|test|tools` → Profile repository groups；保留旧 kind alias。
-- `epvs-*` Skills → 提取通用 Skill，项目特有内容留在 ePVS Profile/扩展。
-- `envision-*`、数据注入和真实仓库分支 → ePVS Profile/私有扩展。
+- 项目专属 Skills → 提取通用 Skill，项目特有内容留在下游扩展。
+- 具体测试框架、数据注入和真实仓库分支 → 下游私有扩展。
 - `config/projects.yaml` 中真实项目 ID、路径和描述 → 不进入默认开源 Profile。
-- `knowledge/epvs*`、历史 `runs/`、`outputs/`、`.env`、仓库镜像 → 不复制到公开 Core。
+- 项目知识、历史 `runs/`、`outputs/`、`.env`、仓库镜像 → 不复制到公开 Core。
 
 ## 8. 迁移执行顺序
 
@@ -265,30 +265,28 @@ integrations:
 
 1. 迁移 paths、phase router、Run State、template copy、validator 和 Stage Gate。
 2. 迁移对应测试，保证 Agent-next 121 项基线在新目录继续通过。
-3. 将 Project/Track 作为新增字段接入，但先保留 product_line 只读兼容。
+3. 将 Project/Track 作为统一项目身份字段接入。
 
 完成记录（2026-09-02）：
 
 - 已迁移 paths、phase router、Run State、schema/migrator、template copier、
   artifact/test-case validators 与 Stage Gate。
 - 已合并 Agent-new 原有 41 项测试与本阶段迁移测试，共 136 项通过。
-- 新运行态支持 `project_id + tracks`；旧 `product_line` 仅作为兼容身份与旧输出
-  路由回退，不再限制为 Core 的 `v1/v2` 枚举。
-- 为保证迁移测试和 Skill receipt 可验证，三套 Workflow 与 `epvs-*` Skills 先作为
-  兼容基线复制；它们仍属于 R2 的参数化对象，不能视为通用 Skill 已完成。
+- 新运行态使用 `project_id + tracks`；Core 不保留项目专属身份或输出路由回退。
+- 为保证迁移测试和 Skill receipt 可验证，三套 Workflow 与旧项目 Skills 曾作为
+  兼容基线复制；它们属于 R2 的参数化对象，不能视为通用 Skill 已完成。
 
 ### R2：迁移 Workflow 和通用 Skills
 
 1. 迁移三套 Workflow README、Phase 文档和 Stage Gate rules。
-2. 从 `epvs-requirement/test-points/test-cases/reporting/acceptance/automation`
-   提取通用 Skill，保留原 references 和方法论。
+2. 从旧项目 Skills 提取通用 Skill，保留原 references 和方法论。
 3. Capability YAML 引用 Workflow/Phase/Skill，不复制其规则文本。
-4. 迁移 `zentao-sync` Skill，去除 ePVS 默认值，继续调用 `zentao-cli`。
+4. 迁移 `zentao-sync` Skill，去除项目默认值，继续调用 `zentao-cli`。
 
 完成记录（2026-09-02）：
 
 - Stage Gate 与三套 Workflow 已切换到通用 Skill 名；通用执行链不再依赖
-  `epvs-*` Skill。
+  项目专属 Skill。
 - 已抽取 `requirement-analysis`、`test-analysis`、`test-case-design`、
   `automation`、`reporting`、`release-acceptance` 与 `zentao-sync`，保留原有
   方法论 references 和确认边界。
@@ -296,8 +294,8 @@ integrations:
 - Capability Schema 要求每项显式引用 `workflow + phase + skill`，Planner 加载时
   校验 Phase 和 Skill 确实存在。
 - Project Profile integration 改为 Skill-first，`adapter` 仅作为可选薄驱动。
-- ePVS 的旧 Skill 名、v1/v2/shared 映射、专用自动化和数据注入规则通过
-  `profiles/epvs/profile.yaml` 明确保留为兼容扩展，不作为 Core 默认值。
+- 旧 Skill 名、Track 映射、专用自动化和数据注入规则不随通用仓库分发，
+  需要时由下游扩展维护。
 - R2 合并后共 145 项测试通过，8 个通用 Skill 均通过 `quick_validate.py`，
   通用 Intake Run State 与严格 Stage Gate 冒烟通过。
 
@@ -334,34 +332,13 @@ integrations:
   可以按公开 CLI 顺序完成。
 - Inventory 按 `project_id` 隔离 Run Artifact Registry；其他 Project 的记录不再污染
   当前项目。
-- 当前受控测试共 166 项通过；R4 的真实 ePVS 前后对照仍不包含在该数字中。
+- 当前受控测试共 166 项通过；真实项目的私有迁移对照不包含在该数字中。
 
-### R4：ePVS 兼容验证
+### R4：下游扩展边界
 
-1. 建立不包含凭证和敏感数据的 ePVS Profile 示例或私有扩展接口。
-2. 对 Feature、Bug、Release 各选一个现有场景做迁移前后对照。
-3. 验证 Skill receipt、知识/仓库证据、确认边界和输出路由不退化。
-
-本地验证记录（2026-09-03）：
-
-- `profiles/epvs/project.example.yaml` 是可通过 Project Profile Schema 与 `doctor`
-  的无敏感信息示例；`profiles/epvs/README.md` 定义了私有知识、仓库 revision、
-  禅道模块映射、环境端点和凭证的本地扩展边界。
-- ePVS 兼容预设现可表达 `v1/v2/shared`、旧 `dev/test/tools` 仓库组、旧 Feature /
-  Bug / Release 输出路由、旧 Skill 别名，以及 API/Web 自动化和数据准备 slot。
-- `profiles/epvs/migration-scenarios.yaml` 从旧 Agent-next Run State 脱敏提取了
-  `v2-feat-predictive-maintenance-trend-update-20260901`、`bug-1713-regression` 和
-  `release-v2.0.1-qxcp1` 三个现有场景的身份、证据数量、输出路由和历史 Gate 结果。
-- 受控回归 fixture 对照上述历史快照；迁移后仍校验实时 Skill SHA-256 receipt、知识引用、
-  仓库 revision/evidence、Track 和 Stage Gate。
-- 未确认的 ZenTao Bug 写入与共享环境 Release 执行在迁移前后仍被阻断。
-- 当前共 183 项受控测试通过，ePVS Project Profile 的 `doctor` 通过。
-
-R4 尚不能整体标记完成。公开仓库按设计不包含旧 Run State、旧 `outputs/v1|v2|shared`、
-私有知识、真实仓库 checkout/revision、ZenTao 配置或共享环境访问条件，因此上述 fixture
-只能证明本地契约不退化。完成 R4 仍需在获得授权的私有工作区内，为 Feature、Bug、
-Release 各执行一次历史输入的迁移前后对照，并保存脱敏结果；真实 ZenTao 写入、共享环境
-执行或共享数据修改仍必须逐次确认。
+具体项目的兼容 Profile、私有知识、仓库 checkout、环境配置、数据准备规则和
+迁移对照不进入通用仓库。通用测试只验证 Project Profile Schema、Skill slot、
+Skill receipt、证据链与确认门禁；真实项目验证由下游扩展自行维护。
 
 ## 9. 合并验收门槛
 
@@ -373,7 +350,7 @@ Release 各执行一次历史输入的迁移前后对照，并保存脱敏结果
 4. Test Case 必须继续通过三份强制 reference receipt 和专用 validator。
 5. 未确认的 ZenTao 写入、共享环境执行和共享数据修改被 Stage Gate 阻断。
 6. 现有 `zentao-cli` Skill 调用路径可用，不存在第二套 ZenTao 客户端。
-7. ePVS Profile 能表达 v1/v2/shared 和旧输出路由，但通用 Core 测试不依赖 ePVS。
+7. 下游 Profile 能表达自定义 Track 和输出路由，通用 Core 测试不依赖具体项目。
 8. `agent-next-generalization-v0.1.md`、Workflow、Capability 与代码之间有一致性测试。
 
 ## 10. 后续开发决策规则

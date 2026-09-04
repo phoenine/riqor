@@ -6,7 +6,8 @@ from typing import Any
 
 
 LEGACY_SCHEMA_VERSION = 1
-CURRENT_SCHEMA_VERSION = 2
+PREVIOUS_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 def detect_schema_version(state: dict[str, Any]) -> int | None:
