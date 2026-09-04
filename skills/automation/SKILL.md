@@ -17,10 +17,13 @@ product or framework.
 - Existing manual and automated coverage.
 - Target environment and its confirmation policy.
 
+Read [references/classification-rules.md](references/classification-rules.md)
+when classifying test cases or reviewing an existing classification.
+
 ## Workflow
 
-1. Classify each coverage item as API, Web/UI, hybrid, or manual-only and record
-   why.
+1. Classify each case by automation level and target using its core oracle. Do
+   not infer the target from setup steps or from the existence of a UI.
 2. Prefer an existing matching case before generating new automation.
 3. Resolve the repository and command from the Project Profile or its selected
    project Skill. Do not infer branches, endpoints, credentials, or framework

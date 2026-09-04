@@ -289,8 +289,8 @@ integrations:
   api_automation:
     skill: pytest-yaml-api
     config:
-      runtime: rigorpath-api-test
-      runtime_version: 0.1.0
+      runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_revision: <immutable-tag-or-full-commit>
   requirement_tracker:
     skill: zentao-sync
   issue_tracker:
@@ -651,6 +651,10 @@ Compatibility，并为每类记录已覆盖的 Risk / Test Point、Coverage Gap 
 
 分类必须记录理由、依赖、预计稳定性和阻塞项。没有自动化仓库时仍可完成分类，但不能声称已经实现。
 
+分类同时记录自动化等级 `A0/A1/M0/N0`。目标以核心验证对象为准：页面仅用于准备数据时，
+接口响应或后端状态仍是 `api`；只有浏览器和接口两类断言都不可替代时才是 `hybrid`。
+生成前必须先匹配现有覆盖，并记录依赖、副作用、目标仓库和决定依据。
+
 ### 9.9 自动化实现
 
 API 与 Web 自动化分别由 Skill 实现；Skill 优先调用项目已有测试框架和工具。只有多个
@@ -668,6 +672,10 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 项目与可追溯 YAML case，并复用独立版本化的 `rigorpath-api-test` 运行时。Core 不包含
 产品端点、认证或租户逻辑；每个 `AUTO-###` 必须保留 `TP-###`、`TC-###` 及断言来源，
 静态校验失败或存在悬空引用时不得进入执行阶段。性能/Locust 不属于该实现的默认 MVP。
+当 Project Profile 声明唯一的 API automation repository 时，Skill 在该
+`repositories.automation[].path` 生成业务测试项目，并通过 `uv sync` 从
+`runtime_url@runtime_revision` 获取运行时。revision 必须是不可变 tag 或 commit；已有非空
+目录只复用、不覆盖。
 
 ### 9.10 测试执行与报告
 
@@ -937,8 +945,8 @@ integrations:
   api_automation:
     skill: pytest-yaml-api
     config:
-      runtime: rigorpath-api-test
-      runtime_version: 0.1.0
+      runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_revision: <immutable-tag-or-full-commit>
   test_management:
     skill: zentao-sync
     capabilities: [read_cases, preview_sync, create_cases, update_cases]

@@ -26,9 +26,14 @@ before generating or changing YAML cases.
 1. Classify the requested operation as `bootstrap`, `generate`, `validate`, or
    `execute`. A request may include more than one operation.
 2. For `bootstrap`, confirm that no declared API automation repository already
-   provides the required capability. Preview the target, then run
-   `python3 scripts/scaffold_framework.py --destination <path> --project-name <name>`.
-   The script refuses a non-empty destination and never overwrites files.
+   provides the required capability. Read the runtime URL and immutable tag or
+   commit from `integrations.api_automation.config`, preview the target, then run
+   `python3 scripts/scaffold_framework.py --project-profile <profile> --repository-id <id> --workspace-root <root> --install`.
+   The URL defaults to the official RigorPath runtime. The script refuses a
+   non-empty destination and never overwrites files; `--install` uses `uv sync`
+   to fetch the pinned runtime into the generated project's virtual environment.
+   Use explicit `--destination`, `--project-name`, and `--runtime-revision` only
+   when no Project Profile exists.
 3. For `generate`, map one behavior model to one `AUTO-###` case. Prefer datasets
    over duplicating structurally identical cases. Copy source IDs and assertion
    provenance into the YAML; do not silently promote a hypothesis to a
