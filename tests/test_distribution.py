@@ -69,6 +69,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn("workflows/feature-quality/README.md", names)
                 self.assertIn("workflows/feature-quality/workflow.yaml", names)
                 self.assertIn("skills/pytest-yaml-api/provider.yaml", names)
+                self.assertIn("skills/pytest-playwright-web/provider.yaml", names)
                 self.assertIn("config/automation-presets.yaml", names)
                 archive.extractall(installed)
 

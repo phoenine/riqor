@@ -1,0 +1,28 @@
+# {{PROJECT_NAME}}
+
+Generated Playwright pytest adapter using the `rigorpath_web_test` package from
+the `rigor-test` runtime at `{{RUNTIME_REVISION}}`.
+
+Install the pinned runtime and Chromium:
+
+```bash
+uv sync
+uv run playwright install chromium
+```
+
+Collect generated testcases without contacting the application:
+
+```bash
+uv run pytest --collect-only -q
+```
+
+Execute only after setting the declared environment and satisfying its confirmation
+policy:
+
+```bash
+WEBTEST_BASE_URL=https://web.example.test uv run pytest -q
+```
+
+Generate business testcases under `tests/` and reusable product Page/Component
+Objects under `pages/`. Each runtime-managed Web testcase must declare a valid
+`rigor_source` marker. Do not commit credentials or authenticated storage state.

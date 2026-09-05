@@ -12,7 +12,7 @@ from .artifacts import (
 )
 from .automation_prepare import (
     AutomationPrepareError,
-    prepare_api_automation,
+    prepare_automation,
     render_automation_implementation,
     select_automation_inputs,
 )
@@ -94,6 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_automation.add_argument("--workflow", default="feature-quality")
     prepare_automation.add_argument("--capability", default="automation-prepare")
     prepare_automation.add_argument("--repository-id")
+    prepare_automation.add_argument(
+        "--automation-target",
+        choices=("api", "web"),
+        default="api",
+        help="classified automation target and provider capability",
+    )
     prepare_automation.add_argument(
         "--no-install",
         action="store_true",
@@ -361,6 +367,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 classification_artifact_id=args.classification_artifact,
                 test_cases_artifact_id=args.test_cases_artifact,
                 repository_id=args.repository_id,
+                automation_target=args.automation_target,
             )
             registry = load_capabilities(root, workflow=args.workflow)
             if registry.errors:
@@ -392,7 +399,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run_id=args.run_id,
                 records=selection.run_inputs,
             )
-            result = prepare_api_automation(
+            result = prepare_automation(
                 root=root,
                 selection=selection,
                 install=not args.no_install,
@@ -407,10 +414,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                     knowledge_plan_evidence=[],
                     notes=[
                         "optional_skip:Optional Case Sync Or Generation:"
-                        "no eligible A0/A1 API or hybrid cases"
+                        f"no eligible A0/A1 {args.automation_target} or hybrid cases"
                     ],
                 )
-                print("SKIPPED no A0/A1 api or hybrid cases")
+                print(
+                    f"SKIPPED no A0/A1 {args.automation_target} or hybrid cases"
+                )
                 return 0
             classification_reference = (
                 f"{selection.classification.artifact_id}@{selection.classification.revision}"
@@ -464,6 +473,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 classification_reference=classification_reference,
                 test_cases_reference=test_cases_reference,
                 installed=not args.no_install,
+                automation_target=selection.automation_target,
             )
             (root / scaffold.content_path).write_text(implementation, encoding="utf-8")
         except (AutomationPrepareError, ArtifactActionError, LifecycleError, OSError) as exc:

@@ -10,5 +10,5 @@ optional: []
 produces: [automation_implementation]
 side_effect: false
 action_class: local_write
-skill: pytest-yaml-api
+skill: automation
 template: automation-implementation

@@ -6,7 +6,7 @@
 | **输入** | 已确认的测试设计与用例 |
 | **产出** | `external_sync:` 结果、`automation_classification` 和/或 `automation_implementation`；或 skip |
 
-**Skills:** Project Profile 选择的 integration Skill（例如 `zentao-sync`）、`automation`，以及 Project Profile 选择的实现 Skill（例如 `pytest-yaml-api`）
+**Skills:** Project Profile 选择的 integration Skill（例如 `zentao-sync`）、`automation`，以及 Project Profile 选择的实现 Skill（例如 `pytest-yaml-api` 或 `pytest-playwright-web`）
 
 **Confirmation before:** 外部平台写入、自动化仓库文件变更。
 

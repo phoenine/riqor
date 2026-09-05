@@ -697,6 +697,14 @@ provider。命令只接受已登记且 ready 的分类与测试用例 Artifact�
 无符合条件的行明确 skip。Core 只读取 provider contract，不包含 pytest、端点、认证或
 产品规则。
 
+内置的 `pytest-playwright-web` 是 `web-automation` slot 的通用实现：它生成薄
+Playwright pytest 项目并复用 `rigor-test` 仓库中的 `rigorpath_web_test` 运行时。
+业务仓库拥有 Page/Component Objects、认证 fixture、选择器和测试数据；运行时只提供
+配置、独立 browser context、storage-state 扩展、可追溯来源校验和失败证据收集。
+`agent-next prepare-automation --automation-target web` 根据 classification 选择唯一的
+Web repository 与 provider，规则与 API provider 相同，不允许 moving revision 或覆盖
+非空目录。
+
 ### 9.10 测试执行与报告
 
 执行记录必须区分：
@@ -986,6 +994,11 @@ integrations:
     skill: pytest-yaml-api
     config:
       runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_revision: <immutable-tag-or-full-commit>
+  web_automation:
+    skill: pytest-playwright-web
+    config:
+      runtime_url: https://github.com/phoenine/rigor-test.git
       runtime_revision: <immutable-tag-or-full-commit>
   test_management:
     skill: zentao-sync

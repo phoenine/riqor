@@ -17,6 +17,7 @@ GENERIC_SKILLS = (
     "test-case-design",
     "automation",
     "pytest-yaml-api",
+    "pytest-playwright-web",
     "test-execution",
     "reporting",
     "release-acceptance",
