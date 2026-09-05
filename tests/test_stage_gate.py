@@ -96,7 +96,8 @@ class StageGateTests(unittest.TestCase):
         self.assertIn("knowledge_not_applicable:", docs)
         self.assertNotIn("knowledge.not_applicable_reason", docs)
         self.assertIn("### Machine Rules By Phase", docs)
-        self.assertIn("| feature-quality | Intake |", docs)
+        self.assertIn("`phases[].gate`", docs)
+        self.assertNotIn("| feature-quality | Intake |", docs)
         self.assertIn("Machine: `intake_input:`", docs)
 
     def test_valid_state_passes_global_checks(self):

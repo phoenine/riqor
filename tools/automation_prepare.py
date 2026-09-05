@@ -11,6 +11,8 @@ from .automation_provider import (
     AutomationProviderError,
     consumer_dependency,
     load_automation_provider,
+    render_install_command,
+    render_prepare_arguments,
 )
 from .inventory import ArtifactRecord, load_inventory
 from .validate_artifact import validate_artifact_file
@@ -48,10 +50,6 @@ def _classification_rows(text: str) -> list[tuple[str, str, str, str]]:
             continue
         rows.append((cells[0], cells[1], cells[2], cells[8]))
     return rows
-
-
-def _render_command(parts: list[Any], destination: Path) -> list[str]:
-    return [str(part).replace("{destination}", str(destination)) for part in parts]
 
 
 def render_automation_implementation(
@@ -228,7 +226,6 @@ def select_automation_inputs(
 def prepare_api_automation(
     *,
     root: Path,
-    profile_path: Path,
     selection: AutomationSelection,
     install: bool = True,
 ) -> AutomationPrepareResult:
@@ -265,12 +262,7 @@ def prepare_api_automation(
         command = [
             sys.executable,
             str(script),
-            "--project-profile",
-            str(profile_path.resolve()),
-            "--workspace-root",
-            str(root),
-            "--repository-id",
-            str(repository["id"]),
+            *render_prepare_arguments(binding, destination),
         ]
         try:
             subprocess.run(command, check=True)
@@ -279,9 +271,10 @@ def prepare_api_automation(
         status = "created"
 
     if install:
-        install_command = provider["prepare"]["install_command"]
         try:
-            subprocess.run(_render_command(install_command, destination), check=True)
+            subprocess.run(
+                render_install_command(binding, destination), check=True
+            )
         except subprocess.CalledProcessError as exc:
             raise AutomationPrepareError(f"automation dependency install failed with exit code {exc.returncode}") from exc
     generated_files = tuple(

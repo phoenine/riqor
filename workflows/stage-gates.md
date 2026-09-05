@@ -30,32 +30,14 @@ Duplicate definitions, dangling `REQ/RISK/TP/TC/AUTO/BR/Q` references, and undef
 
 ### Machine Rules By Phase
 
-Authoritative declarations: `workflows/<id>/workflow.yaml` → `phases[].gate`.
+The authoritative declarations are the `phases[].gate` entries in each
+`workflows/<id>/workflow.yaml`. The selected Capability contributes its own
+implementation Skill when a run is prepared.
 
-| Entry | Phase | Machine-enforced (phase-specific) |
-|---|---|---|
-| feature-quality | Intake | `requirement-analysis`; `intake_input:`; `knowledge_plan` resolved; knowledge |
-| feature-quality | Requirement Specification | `requirement-analysis`; artifact `requirement_spec`; knowledge |
-| feature-quality | Risk Analysis | `test-analysis`; artifact `risk_analysis`; knowledge; repository evidence |
-| feature-quality | Test Design | `test-analysis`, `test-case-design`; artifact `test_points`; test cases must cite ready test points; knowledge |
-| feature-quality | Optional Case Sync Or Generation | Optional; Project Profile integration Skill, `automation`, or selected implementation Skill; `external_sync:`, `automation_classification`, `automation_implementation`, or skip |
-| feature-quality | Optional Case Execute | Optional; `test-execution` when cases run, plus `automation` or `test-case-design`; normalized `execution_record` or `data_injection:` or skip |
-| feature-quality | Optional Bug Report | Optional; `reporting`; `bug_report` or skip |
-| feature-quality | Optional Test Report | Optional; `reporting`; artifact `run_summary`; traceability or skip |
-| bug-regression | Bug Intake | `requirement-analysis`; `bug_intake:`; `bug_surface:`; knowledge |
-| bug-regression | Change Scope | `test-analysis`; artifact `change_scope`; knowledge; repository evidence |
-| bug-regression | Impact Analysis | `test-analysis`; artifact `risk_analysis`; knowledge; repository evidence |
-| bug-regression | Coverage Match | `test-case-design`, `automation`; artifact `coverage_match`; knowledge |
-| bug-regression | Decision Gate | `test-case-design`, `automation`; `decision_path:` |
-| bug-regression | Regression Plan | `test-case-design`, `automation`, `reporting`; artifact `regression_plan`; `regression_strategy:`; `test_cases` when `decision_path: supplement_cases` |
-| bug-regression | Execution | Optional; `test-execution` when cases run, plus `automation` or `test-case-design`; normalized `execution_record` or `data_injection:` or skip |
-| bug-regression | Regression Report | `reporting`; artifact `regression_report`; traceability |
-| release-acceptance | Release Baseline | `release-acceptance`; `release_baseline:`; `release_scope_tracks`; `environment.target`; knowledge; repository evidence |
-| release-acceptance | Scope Collection | `release-acceptance`, `requirement-analysis`, `test-analysis`; `release_scope:`; `release_scope_tracks`; knowledge |
-| release-acceptance | Acceptance Plan | `release-acceptance`, `test-case-design`, `automation`; artifact `acceptance_plan`; knowledge |
-| release-acceptance | Acceptance Execution | `automation`, `release-acceptance`, and `test-execution` when cases run; `automation_execution_plan:` or `automation_execution_skip:`; normalized `execution_record` or `execution_evidence:` / `data_injection:` / `optional_skip:` |
-| release-acceptance | Release Decision | `release-acceptance`, `reporting`; artifact `acceptance_report`; `release_decision:`; traceability |
-| release-acceptance | Optional Post-release Observation | Optional; `release-acceptance`, `reporting`; or skip |
+Inspect the active Workflow manifest instead of maintaining a second copy of
+its rules in this document. `agent-next doctor --project <profile>` validates
+the manifest, phase documents, Capabilities, Skills, and artifact templates as
+one registry.
 
 Skip optional phases with `optional_skip:<phase>: <reason>` in `notes[]`.
 

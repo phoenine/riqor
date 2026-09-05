@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import re
-
 from pathlib import Path
 
 try:
@@ -40,10 +38,7 @@ WORKFLOW_ENTRIES: tuple[str, ...] = tuple(CANONICAL_PHASES.keys())
 
 # Entry-scoped aliases for common drift (lowercase keys).
 PHASE_ALIASES: dict[tuple[str, str], str] = {
-    ("feature-quality", "intake"): "Intake",
-    ("bug-regression", "bug intake"): "Bug Intake",
     ("release-acceptance", "post-release observation"): "Optional Post-release Observation",
-    ("release-acceptance", "optional post-release observation"): "Optional Post-release Observation",
 }
 
 ALL_CANONICAL_PHASES: tuple[str, ...] = tuple(
@@ -55,22 +50,6 @@ def _collapse_whitespace(value: str) -> str:
     return " ".join(value.split())
 
 
-def phase_slug(phase: str) -> str:
-    """Stable filename slug for a canonical phase name."""
-    return re.sub(r"[^a-z0-9]+", "-", phase.lower()).strip("-")
-
-
-def build_phase_doc_filenames(entry: str, *, root: Path | None = None) -> dict[str, str]:
-    """Map canonical phase name to numbered filename under phases/."""
-    record = load_workflow(root or AGENT_NEXT_ROOT, entry)
-    return {phase.name: Path(phase.document).name for phase in record.phases}
-
-
-PHASE_DOC_FILENAMES: dict[str, dict[str, str]] = {
-    entry: build_phase_doc_filenames(entry) for entry in WORKFLOW_ENTRIES
-}
-
-
 def workflow_readme_path(entry: str, *, root: Path | None = None) -> str:
     return load_workflow(root or AGENT_NEXT_ROOT, entry).readme
 
@@ -80,9 +59,8 @@ def phase_doc_path(entry: str, phase: str, *, root: Path | None = None) -> str:
     package_root = root or AGENT_NEXT_ROOT
     record = load_workflow(package_root, entry)
     phases = tuple(item.name for item in record.phases)
-    normalized = normalize_phase(phase, entry, root=package_root)
-    filenames = build_phase_doc_filenames(entry, root=package_root)
-    if normalized not in filenames:
+    normalized = _normalize_phase(phase, entry, {entry: phases})
+    if normalized not in phases:
         allowed = ", ".join(phases)
         raise ValueError(f"unknown phase {phase!r} for entry {entry!r}; must be one of: {allowed}")
     document = next(item.document for item in record.phases if item.name == normalized)
@@ -98,16 +76,23 @@ def normalize_phase(
     phase: str, entry: str | None = None, *, root: Path | None = None
 ) -> str:
     """Return the canonical phase name when entry is known; otherwise best effort."""
-    trimmed = _collapse_whitespace(phase)
-    if not trimmed:
-        return trimmed
-
     canonical_phases = CANONICAL_PHASES
     if root is not None:
         canonical_phases = {
             workflow_id: tuple(item.name for item in record.phases)
             for workflow_id, record in _workflow_records(root).items()
         }
+    return _normalize_phase(phase, entry, canonical_phases)
+
+
+def _normalize_phase(
+    phase: str,
+    entry: str | None,
+    canonical_phases: dict[str, tuple[str, ...]],
+) -> str:
+    trimmed = _collapse_whitespace(phase)
+    if not trimmed:
+        return trimmed
     if entry and entry in canonical_phases:
         lowered = trimmed.lower()
         alias = PHASE_ALIASES.get((entry, lowered))
@@ -131,26 +116,27 @@ def normalize_phase(
 
 
 def phase_validation_error(
-    entry: str | None, phase: str, *, root: Path | None = None
+    entry: str | None,
+    phase: str,
+    *,
+    root: Path | None = None,
+    registered_phases: tuple[str, ...] | None = None,
 ) -> str | None:
     if not phase:
         return "required non-empty string"
-    canonical_phases = CANONICAL_PHASES
-    if root is not None:
+    if registered_phases is not None and entry is not None:
+        canonical_phases = {entry: registered_phases}
+    elif root is not None:
         canonical_phases = {
             workflow_id: tuple(item.name for item in record.phases)
             for workflow_id, record in _workflow_records(root).items()
         }
+    else:
+        canonical_phases = CANONICAL_PHASES
     if entry not in canonical_phases:
         return f"cannot be validated because entry {entry!r} is not registered"
-    normalized = normalize_phase(phase, entry, root=root)
+    normalized = _normalize_phase(phase, entry, canonical_phases)
     if normalized not in canonical_phases[entry]:
         allowed = ", ".join(canonical_phases[entry])
         return f"must be one of: {allowed}"
     return None
-
-
-def format_phase_reference(entry: str) -> str:
-    if entry not in CANONICAL_PHASES:
-        return ""
-    return "\n".join(f"- `{phase}`" for phase in CANONICAL_PHASES[entry])

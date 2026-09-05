@@ -2,6 +2,15 @@ schema_version: 1
 capability: api
 prepare:
   script: scripts/scaffold_framework.py
+  arguments:
+    - --destination
+    - "{destination}"
+    - --project-name
+    - "{repository_id}"
+    - --runtime-url
+    - "{runtime_url}"
+    - --runtime-revision
+    - "{runtime_revision}"
   install_command:
     - uv
     - sync

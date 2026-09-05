@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from tools.doctor import DoctorReport, _check_api_automation, run_doctor
+from tools.doctor import DoctorReport, _check_automation_provider, run_doctor
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,7 +39,7 @@ class DoctorTests(unittest.TestCase):
             },
         }
         report = DoctorReport()
-        _check_api_automation(profile, ROOT, report)
+        _check_automation_provider(profile, ROOT, report, "api")
         self.assertIn(
             "api automation: automation provider config runtime_revision must be an immutable tag or commit",
             report.errors,
@@ -67,7 +67,7 @@ class DoctorTests(unittest.TestCase):
             },
         }
         report = DoctorReport()
-        _check_api_automation(profile, ROOT, report)
+        _check_automation_provider(profile, ROOT, report, "api")
         self.assertEqual(report.errors, [])
         self.assertIn(
             "api automation pending preparation repositories/automation/unprepared-api-test",

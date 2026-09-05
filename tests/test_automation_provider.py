@@ -8,6 +8,8 @@ from tools.automation_provider import (
     AutomationProviderError,
     consumer_dependency,
     load_automation_provider,
+    render_install_command,
+    render_prepare_arguments,
 )
 from tools.bootstrap import init_project
 from tools.contracts import load_yaml
@@ -33,6 +35,25 @@ class AutomationProviderTests(unittest.TestCase):
             )
             self.assertEqual(binding.repository["id"], "iot-ops-api-test")
             self.assertIn("957edc", consumer_dependency(binding))
+            arguments = render_prepare_arguments(
+                binding, root / "repositories/automation/iot-ops-api-test"
+            )
+            self.assertIn("--runtime-revision", arguments)
+            self.assertNotIn("--project-profile", arguments)
+            self.assertEqual(
+                render_install_command(
+                    binding, root / "repositories/automation/iot-ops-api-test"
+                )[:2],
+                ["uv", "sync"],
+            )
+
+            profile["integrations"]["custom_api"] = profile["integrations"].pop(
+                "api_automation"
+            )
+            custom_binding = load_automation_provider(
+                root=root, profile=profile, capability="api"
+            )
+            self.assertEqual(custom_binding.integration_id, "custom_api")
 
             provider_path = root / "skills/pytest-yaml-api/provider.yaml"
             provider_path.write_text(

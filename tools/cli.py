@@ -354,7 +354,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"ERROR project profile: {error}")
             return 1
         assert profile is not None
-        profile_path = args.project if args.project.is_absolute() else root / args.project
         try:
             selection = select_automation_inputs(
                 root=root,
@@ -395,7 +394,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             result = prepare_api_automation(
                 root=root,
-                profile_path=profile_path,
                 selection=selection,
                 install=not args.no_install,
             )

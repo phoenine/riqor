@@ -40,6 +40,42 @@ def _render(template: str, config: dict[str, Any]) -> str:
     return result
 
 
+def _render_arguments(
+    arguments: list[str], values: dict[str, Any], *, label: str
+) -> list[str]:
+    rendered = [_render(str(argument), values) for argument in arguments]
+    if any("{" in argument or "}" in argument for argument in rendered):
+        raise AutomationProviderError(
+            f"automation provider {label} contains unresolved config"
+        )
+    return rendered
+
+
+def render_prepare_arguments(
+    binding: AutomationProviderBinding, destination: Path
+) -> list[str]:
+    values = {
+        **binding.config,
+        "destination": str(destination),
+        "repository_id": str(binding.repository["id"]),
+    }
+    return _render_arguments(
+        binding.provider["prepare"]["arguments"],
+        values,
+        label="arguments",
+    )
+
+
+def render_install_command(
+    binding: AutomationProviderBinding, destination: Path
+) -> list[str]:
+    return _render_arguments(
+        binding.provider["prepare"]["install_command"],
+        {**binding.config, "destination": str(destination)},
+        label="install command",
+    )
+
+
 def load_automation_provider(
     *,
     root: Path,
@@ -115,9 +151,12 @@ def load_automation_provider(
     dependency = _render(provider["consumer"]["dependency"], config)
     if "{" in dependency or "}" in dependency:
         raise AutomationProviderError("automation provider dependency has unresolved config")
-    return AutomationProviderBinding(
+    binding = AutomationProviderBinding(
         integration_id, integration, provider, provider_path, repositories[0]
     )
+    render_prepare_arguments(binding, Path("destination"))
+    render_install_command(binding, Path("destination"))
+    return binding
 
 
 def consumer_dependency(binding: AutomationProviderBinding) -> str:

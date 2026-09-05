@@ -100,9 +100,6 @@ def load_phase_rules(root: Path | None = None) -> dict[tuple[str, str], dict[str
     }
 
 
-PHASE_RULES = load_phase_rules()
-
-
 def load_state(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
         return json.load(fh)

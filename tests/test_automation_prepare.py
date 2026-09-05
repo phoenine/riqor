@@ -8,6 +8,8 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import yaml
+
 from tools.bootstrap import init_project
 from tools.cli import main
 from tools.traceability_lint import lint_run_state_traceability
@@ -143,6 +145,36 @@ class AutomationPrepareTests(unittest.TestCase):
             )
             self.assertEqual(lint_run_state_traceability(state, repo_root=root), [])
             self.assertIn("CASES TC-001", output.getvalue())
+
+    def test_prepare_uses_provider_arguments_for_custom_integration_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = init_project(
+                root=root,
+                project_id="iot-ops",
+                name="IoT Ops",
+                tracks=["default"],
+                default_track="default",
+                automations=["api"],
+            )
+            profile_path = root / result.profile_path
+            profile = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+            profile["integrations"]["custom_api"] = profile["integrations"].pop(
+                "api_automation"
+            )
+            profile_path.write_text(
+                yaml.safe_dump(profile, sort_keys=False), encoding="utf-8"
+            )
+            write_inputs(root)
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                status = main(prepare_arguments(root))
+
+            self.assertEqual(status, 0, output.getvalue())
+            self.assertTrue(
+                (root / "repositories/automation/iot-ops-api-test/pyproject.toml").is_file()
+            )
 
     def test_prepare_skips_manual_only_classification(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

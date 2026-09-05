@@ -101,6 +101,13 @@ def load_capabilities(root: Path, workflow: str | None = None) -> CapabilityRegi
         search_root = packs[0]
         registry.workflow = search_root.name
 
+    try:
+        workflow_record = load_workflow(root, registry.workflow)
+    except WorkflowRegistryError as exc:
+        registry.errors.append(str(exc))
+        return registry
+    registered_phases = tuple(phase.name for phase in workflow_record.phases)
+
     records_by_id: dict[str, CapabilityRecord] = {}
     for path in sorted(search_root.glob("capabilities/*.yaml")):
         relative_path = path.relative_to(root)
@@ -117,7 +124,9 @@ def load_capabilities(root: Path, workflow: str | None = None) -> CapabilityRegi
                 )
             try:
                 phase_error = phase_validation_error(
-                    str(capability["workflow"]), str(capability["phase"]), root=root
+                    str(capability["workflow"]),
+                    str(capability["phase"]),
+                    registered_phases=registered_phases,
                 )
             except WorkflowRegistryError as exc:
                 phase_error = str(exc)

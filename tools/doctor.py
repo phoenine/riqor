@@ -67,11 +67,6 @@ def _check_automation_provider(
     report.checks.append(f"{capability} automation prepared {repository['path']}")
 
 
-def _check_api_automation(profile: dict, root: Path, report: DoctorReport) -> None:
-    """Compatibility wrapper for callers that explicitly check the API provider."""
-    _check_automation_provider(profile, root, report, "api")
-
-
 def run_doctor(project_file: Path, root: Path) -> DoctorReport:
     report = DoctorReport()
     try:

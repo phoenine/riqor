@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import json
 import yaml
@@ -14,6 +15,7 @@ from tools.planner import (
     build_plan,
     load_capabilities,
 )
+from tools import workflow_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,6 +81,16 @@ class PlannerTests(unittest.TestCase):
                     "test-case-design",
                 ],
             )
+
+    def test_capability_loading_reads_workflow_registry_once(self) -> None:
+        with patch(
+            "tools.workflow_registry.load_workflows",
+            wraps=workflow_registry.load_workflows,
+        ) as load_workflows:
+            registry = load_capabilities(ROOT, workflow="feature-quality")
+
+        self.assertEqual(registry.errors, [])
+        self.assertEqual(load_workflows.call_count, 1)
 
     def test_existing_requirement_is_reused(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
