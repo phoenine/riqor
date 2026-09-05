@@ -1,4 +1,12 @@
-# Agent-next
+<p align="center">
+  <img src="docs/images/2.png" alt="Rigor logo" width="520">
+</p>
+
+# RigorPath (Agent-next)
+
+<p align="center">
+  <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
+</p>
 
 Agent-next is a project-agnostic testing engineering agent workspace. Users
 provide the assets they already have and a desired result; Agent-next inventories
@@ -78,6 +86,54 @@ Fill only the local values you need. The CLI reads the root `.env` without
 overwriting variables supplied by the current shell or CI. Check names and
 presence without exposing values with `agent-next env --group ZENTAO`; see
 [`docs/environment.md`](docs/environment.md).
+
+## Use with Codex or Hermes
+
+Agent-next combines agent-facing Skills with a deterministic local CLI. After
+completing the setup above, expose the repository's bundled Skills through the
+cross-agent project directory:
+
+```bash
+mkdir -p .agents
+ln -s ../skills .agents/skills
+```
+
+Run these commands from the repository root. The symlink keeps the Skills in
+their source location, so updates in `skills/` are immediately available to
+the agent. If `.agents/skills` already exists, reuse or replace it deliberately
+instead of running the link command again.
+
+### Codex
+
+Start Codex in the repository, use `/skills` to confirm that `agent-next` is
+available, then invoke it explicitly with `$agent-next` or describe a matching
+testing-engineering task and let Codex select it:
+
+```text
+$agent-next inspect the available inputs and plan the test_cases goal for checkout
+```
+
+Codex also reads the repository's `AGENTS.md`, which defines the project
+contracts and required verification commands.
+
+### Hermes Agent
+
+Hermes discovers project-local Skills under `.agents/skills`. Trust the cloned
+repository once, then start a new session and invoke the router Skill as a slash
+command:
+
+```bash
+hermes skills trust
+hermes chat -q "/agent-next inspect the available inputs and plan the test_cases goal for checkout"
+```
+
+The router loads only the downstream Skills required by the selected workflow.
+Both hosts can then use the `agent-next` CLI for inventory, planning, Run State,
+artifact creation, and Stage Gates. Remote writes and shared-environment or
+shared-data changes remain explicit confirmation boundaries.
+
+For host-specific behavior, see the official [Codex Skills documentation](https://developers.openai.com/codex/skills)
+and [Hermes Agent Skills documentation](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/skills.md).
 
 ## Validate the example project
 
