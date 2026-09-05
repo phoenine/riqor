@@ -2,7 +2,7 @@
   <img src="docs/images/2.png" alt="Rigor 标志" width="520">
 </p>
 
-# RigorPath（Agent-next）
+# Riqor（Agent-next）
 
 <p align="center">
   <a href="README.md">English</a> | <strong>简体中文</strong>
