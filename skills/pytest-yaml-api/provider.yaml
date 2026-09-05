@@ -1,0 +1,25 @@
+schema_version: 1
+capability: api
+prepare:
+  script: scripts/scaffold_framework.py
+  arguments:
+    - --destination
+    - "{destination}"
+    - --project-name
+    - "{repository_id}"
+    - --runtime-url
+    - "{runtime_url}"
+    - --runtime-revision
+    - "{runtime_revision}"
+  install_command:
+    - uv
+    - sync
+    - --project
+    - "{destination}"
+configuration:
+  required: [runtime_url, runtime_revision]
+  url_fields: [runtime_url]
+  immutable_revision_fields: [runtime_revision]
+consumer:
+  manifest: pyproject.toml
+  dependency: git+{runtime_url}@{runtime_revision}

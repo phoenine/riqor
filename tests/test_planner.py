@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import json
 import yaml
@@ -14,6 +15,7 @@ from tools.planner import (
     build_plan,
     load_capabilities,
 )
+from tools import workflow_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,6 +82,16 @@ class PlannerTests(unittest.TestCase):
                 ],
             )
 
+    def test_capability_loading_reads_workflow_registry_once(self) -> None:
+        with patch(
+            "tools.workflow_registry.load_workflows",
+            wraps=workflow_registry.load_workflows,
+        ) as load_workflows:
+            registry = load_capabilities(ROOT, workflow="feature-quality")
+
+        self.assertEqual(registry.errors, [])
+        self.assertEqual(load_workflows.call_count, 1)
+
     def test_existing_requirement_is_reused(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -130,6 +142,24 @@ class PlannerTests(unittest.TestCase):
             )
             self.assertTrue(report.ready)
             self.assertEqual(report.steps, [])
+
+    def test_automation_implementation_uses_prepare_capability(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_ready(root, "TC-001", "test_cases", "checkout")
+            write_ready(root, "AUTO-CLASS-001", "automation_classification", "checkout")
+            report = build_plan(
+                goal="automation_implementation",
+                scope_id="checkout",
+                inventory=load_inventory(root, PROFILE),
+                registry=self.registry,
+            )
+            self.assertEqual(report.blockers, [])
+            self.assertEqual(
+                [step.capability_id for step in report.steps],
+                ["feature-intake", "automation-prepare"],
+            )
+            self.assertEqual(report.steps[-1].skill, "pytest-yaml-api")
 
     def test_stale_artifact_is_planned_for_regeneration(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -199,6 +229,28 @@ class PlannerTests(unittest.TestCase):
                 "action_class": "local_write",
             }
             for pack in ("feature-quality", "bug-regression"):
+                pack_root = root / "workflows" / pack
+                (pack_root / "phases").mkdir(parents=True)
+                (pack_root / "README.md").write_text(f"# {pack}\n", encoding="utf-8")
+                (pack_root / "phases/01-phase.md").write_text("# Phase\n", encoding="utf-8")
+                (pack_root / "workflow.yaml").write_text(
+                    yaml.safe_dump(
+                        {
+                            "schema_version": 1,
+                            "id": pack,
+                            "readme": "README.md",
+                            "scope_directory": "results",
+                            "phases": [
+                                {
+                                    "name": "Bug Intake",
+                                    "document": "phases/01-phase.md",
+                                    "gate": {},
+                                }
+                            ],
+                        }
+                    ),
+                    encoding="utf-8",
+                )
                 path = root / "workflows" / pack / "capabilities" / "result.yaml"
                 path.parent.mkdir(parents=True)
                 path.write_text(yaml.safe_dump(capability), encoding="utf-8")
@@ -213,6 +265,87 @@ class PlannerTests(unittest.TestCase):
             selected = load_capabilities(root, workflow="bug-regression")
             self.assertEqual(selected.errors, [])
             self.assertEqual(selected.workflow, "bug-regression")
+
+    def test_custom_workflow_uses_manifest_phase_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            pack = root / "workflows/custom-quality"
+            (pack / "capabilities").mkdir(parents=True)
+            (pack / "phases").mkdir()
+            (pack / "README.md").write_text("# Custom\n", encoding="utf-8")
+            for filename in ("01-intake.md", "02-review.md"):
+                (pack / "phases" / filename).write_text("# Phase\n", encoding="utf-8")
+            (pack / "workflow.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": 1,
+                        "id": "custom-quality",
+                        "readme": "README.md",
+                        "scope_directory": "reviews",
+                        "phases": [
+                            {
+                                "name": "Intake",
+                                "document": "phases/01-intake.md",
+                                "gate": {},
+                            },
+                            {
+                                "name": "Review",
+                                "document": "phases/02-review.md",
+                                "gate": {},
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            capabilities = [
+                {
+                    "schema_version": 1,
+                    "id": "custom-intake",
+                    "title": "Custom intake",
+                    "workflow": "custom-quality",
+                    "phase": "Intake",
+                    "produces": [],
+                    "skill": "custom-skill",
+                    "side_effect": False,
+                    "action_class": "local_write",
+                },
+                {
+                    "schema_version": 1,
+                    "id": "custom-review",
+                    "title": "Custom review",
+                    "workflow": "custom-quality",
+                    "phase": "Review",
+                    "produces": ["custom_result"],
+                    "skill": "custom-skill",
+                    "side_effect": False,
+                    "action_class": "local_write",
+                },
+            ]
+            for capability in capabilities:
+                (pack / "capabilities" / f"{capability['id']}.yaml").write_text(
+                    yaml.safe_dump(capability), encoding="utf-8"
+                )
+            skill = root / "skills/custom-skill/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text(
+                "---\nname: custom-skill\ndescription: test fixture\n---\n",
+                encoding="utf-8",
+            )
+
+            registry = load_capabilities(root, workflow="custom-quality")
+            self.assertEqual(registry.errors, [])
+            report = build_plan(
+                goal="custom_result",
+                scope_id="review-1",
+                inventory=load_inventory(root, PROFILE),
+                registry=registry,
+            )
+            self.assertEqual(report.blockers, [])
+            self.assertEqual(
+                [step.capability_id for step in report.steps],
+                ["custom-intake", "custom-review"],
+            )
 
 
 if __name__ == "__main__":

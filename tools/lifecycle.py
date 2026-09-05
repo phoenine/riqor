@@ -8,8 +8,19 @@ from typing import Any, Sequence
 from .phases import normalize_phase, phase_doc_path, workflow_readme_path
 from .planner import CapabilityRecord
 from .knowledge import KnowledgeError, load_proposals, record_proposals
-from .run_state import default_state, load_state as load_run_state, parse_knowledge_used, sha256_file
-from .stage_gate import PHASE_RULES, ROUTER_SKILL, check_state, write_gate_result
+from .contracts import validate_schema
+from .run_state import (
+    add_repositories,
+    default_state,
+    load_state as load_run_state,
+    parse_knowledge_used,
+    parse_kv_record,
+    parse_repository_evidence,
+    sha256_file,
+    unique,
+    upsert_by_id,
+)
+from .stage_gate import ROUTER_SKILL, check_state, load_phase_rules, write_gate_result
 
 
 class LifecycleError(ValueError):
@@ -22,11 +33,16 @@ class RunPreparation:
     state: dict[str, Any]
 
 
-def required_skills_for(capability: CapabilityRecord) -> list[str]:
+def required_skills_for(
+    capability: CapabilityRecord, *, root: Path | None = None
+) -> list[str]:
     metadata = capability.metadata
     entry = str(metadata["workflow"])
-    phase = normalize_phase(str(metadata["phase"]), entry)
-    rule = PHASE_RULES.get((entry, phase), {})
+    try:
+        phase = normalize_phase(str(metadata["phase"]), entry, root=root)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
+    rule = load_phase_rules(root).get((entry, phase), {})
     skills = [ROUTER_SKILL, *rule.get("required_skills", [])]
     capability_skill = str(metadata["skill"])
     if capability_skill not in skills:
@@ -55,7 +71,12 @@ def prepare_run(
 
     metadata = capability.metadata
     entry = str(metadata["workflow"])
-    phase = normalize_phase(str(metadata["phase"]), entry)
+    try:
+        phase = normalize_phase(str(metadata["phase"]), entry, root=root)
+        workflow_path = workflow_readme_path(entry, root=root)
+        workflow_rules = load_phase_rules(root)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
     state_path = root / "runs" / run_id / "state.json"
     if state_path.exists():
         try:
@@ -73,12 +94,19 @@ def prepare_run(
     state["project_id"] = profile["project"]["id"]
     state["tracks"] = list(tracks)
     state["entry"] = entry
-    state["workflow"] = workflow_readme_path(entry)
+    state["workflow"] = workflow_path
     state["phase"] = phase
-    if entry == "release-acceptance":
+    if any(
+        rule.get("require_release_scope_tracks")
+        for (workflow_id, _phase), rule in workflow_rules.items()
+        if workflow_id == entry
+    ):
         state["release_scope_tracks"] = list(tracks)
 
-    required_skills = required_skills_for(capability)
+    try:
+        required_skills = required_skills_for(capability, root=root)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
     state["required_skills"] = required_skills
     state["loaded_skills"] = required_skills
     receipts = []
@@ -133,7 +161,7 @@ def explain_run(root: Path, run_id: str) -> dict[str, Any]:
         "tracks": state.get("tracks", []),
         "workflow": state.get("workflow"),
         "phase": phase,
-        "phase_doc": phase_doc_path(entry, phase),
+        "phase_doc": phase_doc_path(entry, phase, root=root),
         "required_skills": state.get("required_skills", []),
         "artifacts": state.get("artifacts", []),
         "blockers": blockers,
@@ -150,8 +178,47 @@ def record_run_evidence(
     knowledge_plan_evidence: Sequence[str],
     notes: Sequence[str],
     knowledge_proposal_files: Sequence[Path] = (),
+    repositories: Sequence[str] = (),
+    repository_evidence: Sequence[str] = (),
+    required_environment: Sequence[str] = (),
+    checked_environment: Sequence[str] = (),
+    environment_target: str | None = None,
+    confirmations: Sequence[str] = (),
+    traceability: Sequence[str] = (),
 ) -> Path:
     path, state = load_run(root, run_id)
+    if repositories:
+        add_repositories(state, list(repositories))
+    if repository_evidence:
+        state["repository_evidence"].extend(
+            parse_repository_evidence(value) for value in repository_evidence
+        )
+    environment = state.setdefault(
+        "environment", {"required_groups": [], "checked_groups": [], "target": ""}
+    )
+    if required_environment:
+        environment["required_groups"] = unique(
+            [*environment.get("required_groups", []), *required_environment]
+        )
+    if checked_environment:
+        environment["checked_groups"] = unique(
+            [*environment.get("checked_groups", []), *checked_environment]
+        )
+    if environment_target is not None:
+        environment["target"] = environment_target
+    if confirmations:
+        state["confirmations"] = upsert_by_id(
+            state.get("confirmations", []),
+            [
+                parse_kv_record(value, required=["id", "action", "status"])
+                for value in confirmations
+            ],
+        )
+    if traceability:
+        state["traceability"].extend(
+            parse_kv_record(value, required=["from", "to", "relation"])
+            for value in traceability
+        )
     if knowledge_used:
         state["knowledge_used"].extend(parse_knowledge_used(value) for value in knowledge_used)
     if knowledge_plan_status:
@@ -169,12 +236,15 @@ def record_run_evidence(
     if knowledge_plan_evidence:
         state["knowledge_plan"]["evidence"].extend(knowledge_plan_evidence)
     if notes:
-        state["notes"] = list(dict.fromkeys([*state.get("notes", []), *notes]))
+        state["notes"] = unique([*state.get("notes", []), *notes])
     if knowledge_proposal_files:
         try:
             record_proposals(state, load_proposals(root, knowledge_proposal_files))
         except KnowledgeError as exc:
             raise LifecycleError(str(exc)) from exc
+    state_errors = validate_schema(state, "run-state")
+    if state_errors:
+        raise LifecycleError("invalid run state update: " + "; ".join(state_errors))
     path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 

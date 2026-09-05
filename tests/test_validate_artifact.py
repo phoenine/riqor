@@ -300,6 +300,32 @@ class ValidateArtifactTests(unittest.TestCase):
             )
             self.assertEqual(errors, [])
 
+    def test_automation_classification_requires_valid_level_and_target(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "classification.md"
+            template = (
+                ROOT / "templates/artifacts/automation-classification.md.tmpl"
+            ).read_text(encoding="utf-8")
+            completed = re.sub(r"<[^>\n]+>", "completed", template)
+            completed = completed.replace(
+                "| completed | completed | completed | completed | completed | completed | completed | completed | completed |",
+                "| TC-001 | A0 | api | HTTP 200 | none | none | none | API contract | shop-api-test |",
+            )
+            path.write_text(completed + "\nCompleted artifact content.\n", encoding="utf-8")
+
+            self.assertEqual(
+                validate_artifact.validate_artifact_file(
+                    path, expected_artifact_type="automation_classification"
+                ),
+                [],
+            )
+
+            path.write_text(completed.replace("| A0 | api |", "| ready | service |"))
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="automation_classification"
+            )
+            self.assertTrue(any("valid TC-### / Level / Target" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

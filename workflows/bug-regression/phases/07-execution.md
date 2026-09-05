@@ -6,7 +6,7 @@
 | **输入** | Regression Plan、环境、Project Profile automation repositories |
 | **产出** | `execution_record` 或 `data_injection:`；或 `optional_skip:Execution:` |
 
-**Skills:** `automation`, `reporting`; `automation` when needed.
+**Skills:** `test-execution`, `reporting`; add `automation` for automated selectors.
 
 **Repository:** Project Profile automation repositories; a Project Profile data-preparation tool repository for data setup.
 
@@ -17,7 +17,7 @@
 
 **Gate:** 在范围内须先记录执行证据；范围外须先 `optional_skip:Execution:`。
 
-**Machine:** optional; `execution_record` or `data_injection:` or skip —
-`tools/stage_gate.py`
+**Machine:** optional; normalized `execution_record` or `data_injection:` or skip —
+`tools/stage_gate.py`, `tools/traceability_lint.py`
 
 **Prev → Next:** Regression Plan → Regression Report

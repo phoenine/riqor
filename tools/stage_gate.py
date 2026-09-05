@@ -17,7 +17,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from paths import AGENT_NEXT_ROOT, resolve_managed_repo_path, resolve_repo_path  # noqa: E402
 from phases import (  # noqa: E402
-    CANONICAL_PHASES,
+    CANONICAL_PHASES,  # compatibility export for direct stage_gate consumers
     normalize_phase,
     phase_validation_error,
     workflow_readme_path,
@@ -32,6 +32,11 @@ from validate_test_cases import (  # noqa: E402
 from validate_artifact import validate_artifact_file  # noqa: E402
 from artifact_frontmatter import ARTIFACT_SPECS  # noqa: E402
 from traceability_lint import lint_run_state_traceability  # noqa: E402
+from workflow_registry import (  # noqa: E402
+    WorkflowRegistryError,
+    load_workflow,
+    load_workflows,
+)
 
 
 ROUTER_SKILL = "agent-next"
@@ -82,133 +87,18 @@ ARTIFACT_REQUIRED = [
 # - require_environment_target: environment.target must be non-empty
 # - require_note_prefixes: at least one note must start with each prefix
 # - traceability: traceability list must not be empty
-PHASE_RULES: dict[tuple[str, str], dict[str, Any]] = {
-    # Feature testing
-    ("feature-quality", "Intake"): {
-        "required_skills": ["requirement-analysis"],
-        "knowledge": True,
-        "knowledge_plan_resolved": True,
-        "require_intake_input": True,
-    },
-    ("feature-quality", "Requirement Specification"): {
-        "required_skills": ["requirement-analysis"],
-        "artifact_types": ["requirement_spec"],
-        "knowledge": True,
-    },
-    ("feature-quality", "Risk Analysis"): {
-        "required_skills": ["test-analysis"],
-        "artifact_types": ["risk_analysis"],
-        "knowledge": True,
-        "repository_evidence": True,
-    },
-    ("feature-quality", "Test Design"): {
-        "required_skills": ["test-analysis", "test-case-design"],
-        "artifact_types": ["test_points"],
-        "knowledge": True,
-    },
-    ("feature-quality", "Optional Case Sync Or Generation"): {
-        "optional": True,
-        "optional_artifact_types": ["automation_classification"],
-        "require_note_prefixes": ["external_sync:"],
-    },
-    ("feature-quality", "Optional Case Execute"): {
-        "optional": True,
-        "required_skills_any": ["automation", "test-case-design"],
-        "optional_artifact_types": ["execution_record"],
-        "require_note_prefixes": ["data_injection:"],
-    },
-    ("feature-quality", "Optional Bug Report"): {
-        "optional": True,
-        "required_skills": ["reporting"],
-        "optional_artifact_types": ["bug_report"],
-    },
-    ("feature-quality", "Optional Test Report"): {
-        "optional": True,
-        "required_skills": ["reporting"],
-        "artifact_types": ["run_summary"],
-        "traceability": True,
-    },
-    # Bug regression
-    ("bug-regression", "Bug Intake"): {
-        "required_skills": ["requirement-analysis"],
-        "knowledge": True,
-        "require_bug_intake": True,
-        "require_note_prefixes": ["bug_surface:"],
-    },
-    ("bug-regression", "Change Scope"): {
-        "required_skills": ["test-analysis"],
-        "artifact_types": ["change_scope"],
-        "knowledge": True,
-        "repository_evidence": True,
-    },
-    ("bug-regression", "Impact Analysis"): {
-        "required_skills": ["test-analysis"],
-        "artifact_types": ["risk_analysis"],
-        "knowledge": True,
-        "repository_evidence": True,
-    },
-    ("bug-regression", "Coverage Match"): {
-        "required_skills": ["test-case-design", "automation"],
-        "artifact_types": ["coverage_match"],
-        "knowledge": True,
-    },
-    ("bug-regression", "Decision Gate"): {
-        "required_skills": ["test-case-design", "automation"],
-        "require_note_prefixes": ["decision_path:"],
-    },
-    ("bug-regression", "Regression Plan"): {
-        "required_skills": ["test-case-design", "automation", "reporting"],
-        "artifact_types": ["regression_plan"],
-        "require_note_prefixes": ["regression_strategy:"],
-    },
-    ("bug-regression", "Execution"): {
-        "optional": True,
-        "required_skills_any": ["test-case-design", "automation"],
-        "optional_artifact_types": ["execution_record"],
-        "require_note_prefixes": ["data_injection:"],
-    },
-    ("bug-regression", "Regression Report"): {
-        "required_skills": ["reporting"],
-        "artifact_types": ["regression_report"],
-        "traceability": True,
-    },
-    # Release acceptance
-    ("release-acceptance", "Release Baseline"): {
-        "required_skills": ["release-acceptance"],
-        "knowledge": True,
-        "repository_evidence": True,
-        "require_environment_target": True,
-        "require_release_scope_tracks": True,
-        "require_note_prefixes": ["release_baseline:"],
-    },
-    ("release-acceptance", "Scope Collection"): {
-        "required_skills": ["release-acceptance", "requirement-analysis", "test-analysis"],
-        "knowledge": True,
-        "require_release_scope_tracks": True,
-        "require_note_prefixes": ["release_scope:"],
-    },
-    ("release-acceptance", "Acceptance Plan"): {
-        "required_skills": ["release-acceptance", "test-case-design", "automation"],
-        "artifact_types": ["acceptance_plan"],
-        "knowledge": True,
-    },
-    ("release-acceptance", "Acceptance Execution"): {
-        "required_skills": ["automation", "release-acceptance"],
-        "optional_artifact_types": ["execution_record"],
-        "require_note_prefixes_always": ["automation_execution_plan:", "automation_execution_skip:"],
-        "require_note_prefixes": ["execution_evidence:", "data_injection:", "optional_skip:"],
-    },
-    ("release-acceptance", "Release Decision"): {
-        "required_skills": ["release-acceptance", "reporting"],
-        "artifact_types": ["acceptance_report"],
-        "traceability": True,
-        "require_note_prefixes": ["release_decision:"],
-    },
-    ("release-acceptance", "Optional Post-release Observation"): {
-        "optional": True,
-        "required_skills": ["release-acceptance", "reporting"],
-    },
-}
+def load_phase_rules(root: Path | None = None) -> dict[tuple[str, str], dict[str, Any]]:
+    registry = load_workflows(root or AGENT_NEXT_ROOT)
+    if registry.errors:
+        raise WorkflowRegistryError(
+            "invalid workflow registry: " + "; ".join(registry.errors)
+        )
+    return {
+        (workflow_id, phase.name): dict(phase.gate)
+        for workflow_id, workflow in registry.records.items()
+        for phase in workflow.phases
+    }
+
 
 def load_state(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
@@ -300,8 +190,15 @@ def check_recorded_reference_paths(
     return errors
 
 
-def check_predecessor_gate(state: dict[str, Any], entry: str, phase: str) -> list[str]:
-    phases = CANONICAL_PHASES.get(entry)
+def check_predecessor_gate(
+    state: dict[str, Any], entry: str, phase: str, *, repo_root: Path | None = None
+) -> list[str]:
+    root = repo_root or AGENT_NEXT_ROOT
+    try:
+        record = load_workflow(root, entry)
+        phases = tuple(item.name for item in record.phases)
+    except WorkflowRegistryError:
+        phases = None
     if not phases or phase not in phases:
         return []
     index = phases.index(phase)
@@ -465,13 +362,19 @@ def check_global_state(
     if not (project_id and isinstance(tracks, list) and tracks):
         errors.append("run identity requires project_id with tracks")
 
-    phase_error = phase_validation_error(state.get("entry"), str(state.get("phase", "")))
+    root = repo_root or AGENT_NEXT_ROOT
+    phase_error = phase_validation_error(
+        state.get("entry"), str(state.get("phase", "")), root=root
+    )
     if phase_error:
         errors.append(f"phase {phase_error}")
 
     entry = state.get("entry")
-    if entry in CANONICAL_PHASES:
-        expected_workflow = workflow_readme_path(entry)
+    try:
+        expected_workflow = workflow_readme_path(entry, root=root)
+    except (KeyError, ValueError):
+        expected_workflow = None
+    if expected_workflow:
         if state.get("workflow") != expected_workflow:
             errors.append(
                 f"workflow must match entry {entry}: expected {expected_workflow}, "
@@ -494,7 +397,7 @@ def check_global_state(
     if missing_receipts:
         errors.append(f"required skill receipts missing: {', '.join(missing_receipts)}")
 
-    current_phase = normalize_phase(str(state.get("phase", "")), entry)
+    current_phase = normalize_phase(str(state.get("phase", "")), entry, root=root)
     for receipt in state.get("skill_receipts", []):
         skill = receipt.get("skill", "<unknown>")
         for field in ("skill", "path", "sha256", "supports_phase"):
@@ -622,12 +525,18 @@ def check_phase_skills(
 def check_phase_rules(state: dict[str, Any], *, repo_root: Path | None = None) -> list[str]:
     errors: list[str] = []
     entry = state.get("entry")
-    phase = normalize_phase(str(state.get("phase", "")), entry)
-    rule = PHASE_RULES.get((entry, phase))
-    if not rule:
+    phase = normalize_phase(
+        str(state.get("phase", "")), entry, root=repo_root or AGENT_NEXT_ROOT
+    )
+    try:
+        rules = load_phase_rules(repo_root or AGENT_NEXT_ROOT)
+    except WorkflowRegistryError as exc:
+        return [str(exc)]
+    rule = rules.get((entry, phase))
+    if rule is None:
         return [f"unknown or unsupported phase for entry {entry!r}: {phase!r}"]
 
-    errors.extend(check_predecessor_gate(state, entry, phase))
+    errors.extend(check_predecessor_gate(state, entry, phase, repo_root=repo_root))
 
     if rule.get("optional") and has_optional_skip(state, phase):
         return errors
@@ -726,15 +635,19 @@ def check_phase_rules(state: dict[str, Any], *, repo_root: Path | None = None) -
     if rule.get("traceability") and not state.get("traceability"):
         errors.append(f"phase {phase} requires traceability links")
 
-    if (
-        entry == "bug-regression"
-        and phase == "Regression Plan"
-        and any(note.startswith("decision_path:") and "supplement_cases" in note for note in state.get("notes", []))
-        and "test_cases" not in present_types
-    ):
-        errors.append(
-            "phase Regression Plan requires artifact type: test_cases when decision_path is supplement_cases"
+    for requirement in rule.get("conditional_artifact_requirements", []):
+        note_prefix = requirement["note_prefix"]
+        note_contains = requirement["note_contains"]
+        matching_note = any(
+            note.startswith(note_prefix) and note_contains in note
+            for note in state.get("notes", [])
         )
+        missing_types = set(requirement["artifact_types"]) - present_types
+        if matching_note and missing_types:
+            errors.append(
+                f"phase {phase} requires artifact type: {', '.join(sorted(missing_types))} "
+                f"when {note_prefix.rstrip(':')} is {note_contains}"
+            )
 
     return errors
 
@@ -786,7 +699,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--state", type=Path)
     parser.add_argument("--run-id")
     parser.add_argument("--runs-root", type=Path, default=AGENT_NEXT_ROOT / "runs")
-    parser.add_argument("--entry", choices=["feature-quality", "bug-regression", "release-acceptance"])
+    parser.add_argument("--entry")
     parser.add_argument("--phase")
     parser.add_argument("--global-only", action="store_true")
     parser.add_argument("--no-write", action="store_true")

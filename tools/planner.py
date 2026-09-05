@@ -6,7 +6,8 @@ from typing import Any
 
 from .contracts import ContractError, load_yaml, validate_capability
 from .inventory import InventoryReport
-from .phases import CANONICAL_PHASES, normalize_phase, phase_validation_error
+from .phases import normalize_phase, phase_validation_error
+from .workflow_registry import WorkflowRegistryError, load_workflow
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class CapabilityRecord:
 @dataclass
 class CapabilityRegistry:
     workflow: str = ""
+    root: Path | None = None
     records: list[CapabilityRecord] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -70,7 +72,7 @@ class _PlanningState:
 
 def load_capabilities(root: Path, workflow: str | None = None) -> CapabilityRegistry:
     root = root.resolve()
-    registry = CapabilityRegistry()
+    registry = CapabilityRegistry(root=root)
     workflows_root = root / "workflows"
     if workflow is not None:
         if Path(workflow).name != workflow or workflow in {"", ".", ".."}:
@@ -99,6 +101,13 @@ def load_capabilities(root: Path, workflow: str | None = None) -> CapabilityRegi
         search_root = packs[0]
         registry.workflow = search_root.name
 
+    try:
+        workflow_record = load_workflow(root, registry.workflow)
+    except WorkflowRegistryError as exc:
+        registry.errors.append(str(exc))
+        return registry
+    registered_phases = tuple(phase.name for phase in workflow_record.phases)
+
     records_by_id: dict[str, CapabilityRecord] = {}
     for path in sorted(search_root.glob("capabilities/*.yaml")):
         relative_path = path.relative_to(root)
@@ -109,9 +118,18 @@ def load_capabilities(root: Path, workflow: str | None = None) -> CapabilityRegi
             continue
         capability_errors = validate_capability(capability)
         if not capability_errors:
-            phase_error = phase_validation_error(
-                str(capability["workflow"]), str(capability["phase"])
-            )
+            if capability["workflow"] != registry.workflow:
+                capability_errors.append(
+                    f"workflow must match pack {registry.workflow}"
+                )
+            try:
+                phase_error = phase_validation_error(
+                    str(capability["workflow"]),
+                    str(capability["phase"]),
+                    registered_phases=registered_phases,
+                )
+            except WorkflowRegistryError as exc:
+                phase_error = str(exc)
             if phase_error:
                 capability_errors.append(f"phase {phase_error}")
             skill_path = root / "skills" / str(capability["skill"]) / "SKILL.md"
@@ -226,16 +244,30 @@ def build_plan(
         return report
 
     if state.selected:
-        phases = CANONICAL_PHASES.get(registry.workflow, ())
+        if registry.root is None:
+            report.blockers.append("capability registry root is unavailable")
+            return report
+        phases = tuple(
+            phase.name
+            for phase in load_workflow(registry.root, registry.workflow).phases
+        )
         first_selected_phase = min(
-            phases.index(normalize_phase(str(item.metadata["phase"]), registry.workflow))
+            phases.index(
+                normalize_phase(
+                    str(item.metadata["phase"]), registry.workflow, root=registry.root
+                )
+            )
             for item in state.selected
         )
         phase_prerequisites = [
             item
             for item in registry.records
             if not item.metadata["produces"]
-            and phases.index(normalize_phase(str(item.metadata["phase"]), registry.workflow))
+            and phases.index(
+                normalize_phase(
+                    str(item.metadata["phase"]), registry.workflow, root=registry.root
+                )
+            )
             < first_selected_phase
         ]
         state.selected = [*phase_prerequisites, *state.selected]

@@ -330,7 +330,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-id", help="Project Profile project.id for this run.")
     parser.add_argument("--track", action="append", default=[], help="Project-defined owning track; repeatable.")
     parser.add_argument("--release-scope-track", action="append", default=[])
-    parser.add_argument("--entry", choices=["feature-quality", "bug-regression", "release-acceptance"])
+    parser.add_argument("--entry")
     parser.add_argument("--workflow")
     parser.add_argument("--phase")
     parser.add_argument("--required-skill", action="append", default=[])

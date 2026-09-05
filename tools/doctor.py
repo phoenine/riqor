@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .automation_provider import (
+    AutomationProviderError,
+    consumer_dependency,
+    load_automation_provider,
+)
 from .artifacts import load_template_registry
 from .contracts import (
     ContractError,
@@ -12,6 +17,7 @@ from .contracts import (
     validate_project_profile,
 )
 from .planner import load_capabilities
+from .workflow_registry import load_workflows
 
 
 @dataclass
@@ -22,6 +28,43 @@ class DoctorReport:
     @property
     def ok(self) -> bool:
         return not self.errors
+
+
+def _check_automation_provider(
+    profile: dict, root: Path, report: DoctorReport, capability: str
+) -> None:
+    try:
+        binding = load_automation_provider(
+            root=root, profile=profile, capability=capability
+        )
+    except AutomationProviderError as exc:
+        report.errors.append(f"{capability} automation: {exc}")
+        return
+    repository = binding.repository
+    skill = str(binding.integration["skill"])
+    dependency = consumer_dependency(binding)
+    report.checks.append(
+        f"{capability} automation {repository['id']} skill={skill}"
+    )
+    destination = root / repository["path"]
+    if not destination.exists():
+        report.checks.append(
+            f"{capability} automation pending preparation {repository['path']}"
+        )
+        return
+    manifest = destination / binding.provider["consumer"]["manifest"]
+    if not manifest.is_file():
+        report.errors.append(
+            f"{capability} automation: prepared repository lacks consumer manifest: "
+            f"{manifest}"
+        )
+        return
+    if dependency not in manifest.read_text(encoding="utf-8"):
+        report.errors.append(
+            f"{capability} automation: consumer dependency is not configured: {manifest}"
+        )
+        return
+    report.checks.append(f"{capability} automation prepared {repository['path']}")
 
 
 def run_doctor(project_file: Path, root: Path) -> DoctorReport:
@@ -39,6 +82,13 @@ def run_doctor(project_file: Path, root: Path) -> DoctorReport:
 
     project_id = profile["project"]["id"]
     report.checks.append(f"project {project_id}")
+    automation_capabilities = {
+        str(capability)
+        for repository in profile.get("repositories", {}).get("automation", [])
+        for capability in repository.get("capabilities", [])
+    }
+    for capability in sorted(automation_capabilities):
+        _check_automation_provider(profile, root, report, capability)
 
     index_path = root / profile["knowledge"]["index"]
     if index_path.is_file():
@@ -69,18 +119,17 @@ def run_doctor(project_file: Path, root: Path) -> DoctorReport:
                 for error in validate_schema(sources, "knowledge-sources")
             )
 
-    capabilities_root = root / "workflows"
-    workflow_packs = sorted(
-        path for path in capabilities_root.iterdir()
-        if path.is_dir() and any(path.glob("capabilities/*.yaml"))
-    ) if capabilities_root.is_dir() else []
-    if not workflow_packs:
-        report.errors.append(f"no capabilities found under {capabilities_root}")
+    workflows = load_workflows(root)
+    if workflows.errors:
+        report.errors.extend(f"workflows: {error}" for error in workflows.errors)
+        return report
+    if not workflows.records:
+        report.errors.append(f"no workflow manifests found under {root / 'workflows'}")
         return report
 
     capabilities: list[tuple[Path, dict]] = []
-    for pack in workflow_packs:
-        registry = load_capabilities(root, workflow=pack.name)
+    for workflow_id in sorted(workflows.records):
+        registry = load_capabilities(root, workflow=workflow_id)
         report.errors.extend(registry.errors)
         capabilities.extend((root / record.path, record.metadata) for record in registry.records)
 

@@ -4,7 +4,19 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from .artifacts import ArtifactActionError, gate_artifact, scaffold_artifact
+from .artifacts import (
+    ArtifactActionError,
+    attach_artifact_inputs,
+    gate_artifact,
+    scaffold_artifact,
+)
+from .automation_prepare import (
+    AutomationPrepareError,
+    prepare_api_automation,
+    render_automation_implementation,
+    select_automation_inputs,
+)
+from .automation_provider import consumer_dependency
 from .bootstrap import InitError, init_project
 from .contracts import ContractError, load_yaml, validate_project_profile
 from .doctor import run_doctor
@@ -62,7 +74,32 @@ def build_parser() -> argparse.ArgumentParser:
     initialize.add_argument("--track", action="append", dest="tracks")
     initialize.add_argument("--default-track")
     initialize.add_argument("--source", action="append", type=Path, default=[])
+    initialize.add_argument(
+        "--automation",
+        action="append",
+        default=[],
+        help="configure a declared automation preset, such as api (repeatable)",
+    )
     initialize.add_argument("--root", type=Path, default=Path.cwd())
+
+    prepare_automation = subparsers.add_parser(
+        "prepare-automation",
+        help="prepare a Profile-selected automation project for eligible classified cases",
+    )
+    prepare_automation.add_argument("--project", required=True, type=Path)
+    prepare_automation.add_argument("--classification-artifact", required=True)
+    prepare_automation.add_argument("--test-cases-artifact", required=True)
+    prepare_automation.add_argument("--implementation-artifact", required=True)
+    prepare_automation.add_argument("--run-id", required=True)
+    prepare_automation.add_argument("--workflow", default="feature-quality")
+    prepare_automation.add_argument("--capability", default="automation-prepare")
+    prepare_automation.add_argument("--repository-id")
+    prepare_automation.add_argument(
+        "--no-install",
+        action="store_true",
+        help="create or verify the consumer project without resolving dependencies",
+    )
+    prepare_automation.add_argument("--root", type=Path, default=Path.cwd())
 
     inventory = subparsers.add_parser("inventory", help="inspect current artifacts")
     inventory.add_argument("--project", required=True, type=Path)
@@ -127,6 +164,33 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--knowledge-plan-summary")
     record.add_argument("--knowledge-plan-evidence", action="append", default=[])
     record.add_argument("--knowledge-proposal", action="append", type=Path, default=[])
+    record.add_argument(
+        "--repository",
+        action="append",
+        default=[],
+        help="kind=dev,name=repo,path=repositories/dev/repo[,commit=...]",
+    )
+    record.add_argument(
+        "--repository-evidence",
+        action="append",
+        default=[],
+        help="repo=name,evidence_type=file,reference=path[,supports=id]",
+    )
+    record.add_argument("--required-env", action="append", default=[])
+    record.add_argument("--checked-env", action="append", default=[])
+    record.add_argument("--target")
+    record.add_argument(
+        "--confirmation",
+        action="append",
+        default=[],
+        help="id=...,action=...,status=required|confirmed|rejected|not_required",
+    )
+    record.add_argument(
+        "--trace",
+        action="append",
+        default=[],
+        help="from=REQ-001,to=RISK-001,relation=mitigated_by",
+    )
     record.add_argument("--note", action="append", default=[])
     record.add_argument("--root", type=Path, default=Path.cwd())
 
@@ -178,6 +242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 tracks=tracks,
                 default_track=default_track,
                 sources=args.source,
+                automations=args.automation,
             )
         except InitError as exc:
             print(f"ERROR {exc}")
@@ -185,6 +250,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"OK created project profile {result.profile_path}")
         print(f"OK initialized optional project context {result.knowledge_root}")
         print(f"OK registered sources {result.source_count}")
+        if args.automation:
+            print("OK configured automation " + ", ".join(args.automation))
         return 0
     if args.command in {"status", "explain", "record"}:
         root = args.root.resolve()
@@ -199,6 +266,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     knowledge_plan_evidence=args.knowledge_plan_evidence,
                     notes=args.note,
                     knowledge_proposal_files=args.knowledge_proposal,
+                    repositories=args.repository,
+                    repository_evidence=args.repository_evidence,
+                    required_environment=args.required_env,
+                    checked_environment=args.checked_env,
+                    environment_target=args.target,
+                    confirmations=args.confirmation,
+                    traceability=args.trace,
                 )
                 print(f"OK recorded evidence {path.relative_to(root)}")
                 return 0
@@ -272,6 +346,137 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
         for path in written:
             print(f"OK confirmed knowledge {path}")
+        return 0
+    if args.command == "prepare-automation":
+        profile, profile_errors = _project_profile(root, args.project)
+        if profile_errors:
+            for error in profile_errors:
+                print(f"ERROR project profile: {error}")
+            return 1
+        assert profile is not None
+        try:
+            selection = select_automation_inputs(
+                root=root,
+                profile=profile,
+                classification_artifact_id=args.classification_artifact,
+                test_cases_artifact_id=args.test_cases_artifact,
+                repository_id=args.repository_id,
+            )
+            registry = load_capabilities(root, workflow=args.workflow)
+            if registry.errors:
+                raise AutomationPrepareError(
+                    "invalid capability registry: " + "; ".join(registry.errors)
+                )
+            capability = next(
+                (
+                    item
+                    for item in registry.records
+                    if item.capability_id == args.capability
+                ),
+                None,
+            )
+            if capability is None:
+                raise AutomationPrepareError(
+                    f"capability {args.capability} does not exist in workflow {args.workflow}"
+                )
+            tracks = list(selection.classification.metadata["tracks"])
+            prepare_run(
+                root=root,
+                profile=profile,
+                capability=capability,
+                run_id=args.run_id,
+                tracks=tracks,
+            )
+            attach_artifact_inputs(
+                root=root,
+                run_id=args.run_id,
+                records=selection.run_inputs,
+            )
+            result = prepare_api_automation(
+                root=root,
+                selection=selection,
+                install=not args.no_install,
+            )
+            if result.status == "skipped":
+                record_run_evidence(
+                    root=root,
+                    run_id=args.run_id,
+                    knowledge_used=[],
+                    knowledge_plan_status=None,
+                    knowledge_plan_summary=None,
+                    knowledge_plan_evidence=[],
+                    notes=[
+                        "optional_skip:Optional Case Sync Or Generation:"
+                        "no eligible A0/A1 API or hybrid cases"
+                    ],
+                )
+                print("SKIPPED no A0/A1 api or hybrid cases")
+                return 0
+            classification_reference = (
+                f"{selection.classification.artifact_id}@{selection.classification.revision}"
+            )
+            test_cases_reference = (
+                f"{selection.test_cases.artifact_id}@{selection.test_cases.revision}"
+            )
+            source_references = [test_cases_reference, classification_reference]
+            current_inventory = load_inventory(root, profile)
+            existing = next(
+                (
+                    item
+                    for item in current_inventory.records
+                    if item.artifact_id == args.implementation_artifact
+                ),
+                None,
+            )
+            if existing is not None:
+                if (
+                    existing.artifact_type != "automation_implementation"
+                    or existing.scope_id != selection.classification.scope_id
+                    or existing.metadata["source_artifacts"] != source_references
+                ):
+                    raise AutomationPrepareError(
+                        "existing implementation artifact does not match current inputs"
+                    )
+                print(
+                    f"OK automation project {result.status} "
+                    f"{result.destination.relative_to(root)}"
+                )
+                print(f"OK automation implementation reused {existing.path}")
+                print("CASES " + ", ".join(result.eligible_cases))
+                return 0
+            scaffold = scaffold_artifact(
+                root=root,
+                profile=profile,
+                capability=capability,
+                scope_id=selection.classification.scope_id,
+                artifact_id=args.implementation_artifact,
+                source_references=source_references,
+                tracks=tracks,
+                run_id=args.run_id,
+            )
+            assert selection.repository is not None
+            assert selection.provider is not None
+            implementation = render_automation_implementation(
+                project_id=profile["project"]["id"],
+                repository_id=str(selection.repository["id"]),
+                runtime_dependency=consumer_dependency(selection.provider),
+                result=result,
+                classification_reference=classification_reference,
+                test_cases_reference=test_cases_reference,
+                installed=not args.no_install,
+            )
+            (root / scaffold.content_path).write_text(implementation, encoding="utf-8")
+        except (AutomationPrepareError, ArtifactActionError, LifecycleError, OSError) as exc:
+            print(f"BLOCKED {exc}")
+            return 1
+        assert result.destination is not None
+        print(
+            f"OK automation project {result.status} "
+            f"{result.destination.relative_to(root)}"
+        )
+        print(f"OK created automation implementation {scaffold.content_path}")
+        print("STATUS draft; review and gate the implementation artifact")
+        print("CASES " + ", ".join(result.eligible_cases))
         return 0
     if args.command in {"inventory", "register", "plan", "run", "scaffold", "gate"}:
         root = args.root.resolve()

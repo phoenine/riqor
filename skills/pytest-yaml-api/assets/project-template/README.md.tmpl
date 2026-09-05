@@ -1,0 +1,20 @@
+# {{PROJECT_NAME}}
+
+Generated API automation adapter using `rigorpath-api-test` at
+`{{RUNTIME_REVISION}}`.
+
+Install the pinned runtime and validate contracts without contacting an API:
+
+```bash
+uv sync
+uv run rigorpath-api-test validate testcases
+```
+
+Execute after setting the declared environment:
+
+```bash
+API_BASE_URL=https://api.example.test uv run pytest -q
+```
+
+Malformed cases fail collection. Missing `API_BASE_URL` skips execution with an
+explicit reason. Do not commit credentials.

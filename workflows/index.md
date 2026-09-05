@@ -28,12 +28,13 @@ workflow phase requires them. Each skill file lives at `skills/<skill>/SKILL.md`
 | `requirement-analysis` | Requirement intake, PRD/issue/bug context, requirement specs | feature-quality: Intake, Requirement Specification; bug-regression: Bug Intake; release-acceptance: Scope Collection |
 | `test-analysis` | Risk analysis, impact analysis, test point design, coverage scope review | feature-quality: Risk Analysis, Test Design; bug-regression: Change Scope, Impact Analysis; release-acceptance: Scope Collection |
 | `test-case-design` | Test case design, TP-to-TC instantiation, case maintenance, coverage match | feature-quality: Test Design; bug-regression: Coverage Match, Regression Plan; release-acceptance: Acceptance Plan |
-| `automation` | Automation classification, generation, validation, execution | feature-quality: Optional Case Sync Or Generation, Optional Case Execute; bug-regression: Coverage Match–Execution; release-acceptance: Acceptance Plan, Acceptance Execution |
+| `automation` | Automation classification, generation, and implementation validation | feature-quality: Optional Case Sync Or Generation; bug-regression: Coverage Match–Regression Plan; release-acceptance: Acceptance Plan and selector routing |
+| `test-execution` | Confirmed execution, runner evidence collection, JUnit normalization, execution records | feature-quality: Optional Case Execute; bug-regression: Execution; release-acceptance: Acceptance Execution |
 | `zentao-sync` | Bundled optional ZenTao integration using `zentao-cli`; selected through Project Profile | Phases that read or write ZenTao after confirmation |
 | `reporting` | Reports, closeout records, bug drafts, exit criteria | feature-quality: Optional Bug Report, Optional Test Report; bug-regression: Regression Plan, Regression Report; release-acceptance: Release Decision, Optional Post-release Observation |
 | `release-acceptance` | Release baseline, scope, acceptance plan, release decision | release-acceptance: all phases |
 
-Conditional integration Skills (such as `zentao-sync`) and `automation` apply
+Conditional integration Skills (such as `zentao-sync`) and implementation Skills apply
 only when the phase action and Project Profile need them. The selected workflow file and
 `workflows/stage-gates.md` define when they are in scope.
 

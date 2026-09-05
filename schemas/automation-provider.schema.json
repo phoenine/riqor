@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/automation-provider.schema.json",
+  "title": "Agent-next Automation Provider",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "capability", "prepare", "configuration", "consumer"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "capability": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+    "prepare": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["script", "arguments", "install_command"],
+      "properties": {
+        "script": {"type": "string", "minLength": 1},
+        "arguments": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "install_command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "url_fields", "immutable_revision_fields"],
+      "properties": {
+        "required": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "url_fields": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "immutable_revision_fields": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "consumer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "dependency"],
+      "properties": {
+        "manifest": {"type": "string", "minLength": 1},
+        "dependency": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -139,6 +139,11 @@ VALID_RISK_STATUSES = frozenset(
     }
 )
 VALID_RISK_LEVELS = frozenset({"P0", "P1", "P2", "P3"})
+AUTOMATION_CLASSIFICATION_ROW_RE = re.compile(
+    r"^\|\s*(TC-\d+)\s*\|\s*(A0|A1|M0|N0)\s*\|\s*"
+    r"(api|web|hybrid|data_verification|manual_only|not_recommended|blocked)\s*\|",
+    re.MULTILINE,
+)
 
 
 def _uses_new_test_points_template(text: str) -> bool:
@@ -352,6 +357,22 @@ def validate_risk_analysis_body(text: str) -> list[str]:
     return errors
 
 
+def validate_automation_classification_body(text: str) -> list[str]:
+    errors: list[str] = []
+    rows = AUTOMATION_CLASSIFICATION_ROW_RE.findall(text)
+    if not rows:
+        return [
+            "automation_classification must contain at least one valid "
+            "TC-### / Level / Target row"
+        ]
+    seen: set[str] = set()
+    for case_id, _level, _target in rows:
+        if case_id in seen:
+            errors.append(f"duplicate automation classification: {case_id}")
+        seen.add(case_id)
+    return errors
+
+
 # Managed artifact types from tools/copy_template.py → required body sections.
 ARTIFACT_SPECS: dict[str, dict[str, Any]] = {
     "requirement_spec": {
@@ -465,6 +486,19 @@ ARTIFACT_SPECS: dict[str, dict[str, Any]] = {
         "template": "automation-classification",
         "markers": ("# 自动化分类记录", "## 摘要", "## 用例分类", "## 可追溯关系"),
     },
+    "automation_implementation": {
+        "template": "automation-implementation",
+        "markers": (
+            "# 自动化实现记录",
+            "## 摘要",
+            "## 来源覆盖",
+            "## 生成文件",
+            "## 静态校验",
+            "## 执行边界",
+            "## 覆盖缺口",
+            "## 可追溯关系",
+        ),
+    },
 }
 
 TEMPLATED_ARTIFACT_TYPES = frozenset(ARTIFACT_SPECS) | frozenset({"test_cases"})
@@ -514,6 +548,18 @@ def validate_managed_artifact_body(text: str, artifact_type: str) -> list[str]:
     if artifact_type == "test_points":
         return [
             *validate_test_points_template_body(text),
+            *validate_artifact_completion(text, artifact_type),
+        ]
+
+    if artifact_type == "automation_classification":
+        spec = ARTIFACT_SPECS[artifact_type]
+        return [
+            *validate_template_markers(
+                text,
+                spec["markers"],
+                template_name=str(spec["template"]),
+            ),
+            *validate_automation_classification_body(text),
             *validate_artifact_completion(text, artifact_type),
         ]
 

@@ -1,4 +1,12 @@
-# Agent-next
+<p align="center">
+  <img src="docs/images/2.png" alt="Rigor logo" width="520">
+</p>
+
+# RigorPath (Agent-next)
+
+<p align="center">
+  <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
+</p>
 
 Agent-next is a project-agnostic testing engineering agent workspace. Users
 provide the assets they already have and a desired result; Agent-next inventories
@@ -9,35 +17,36 @@ The v0.1 design is documented in
 [`docs/agent-next-generalization-v0.1.md`](docs/agent-next-generalization-v0.1.md).
 For a verified end-to-end example, see the
 [`Shop Platform quickstart`](docs/quickstart-shop-platform.md).
-The implementation must also follow the
-[`Agent-next reuse alignment audit`](docs/agent-next-reuse-alignment-audit-v0.1.md):
-Agent-new reuses and parameterizes Agent-next rather than replacing its proven
-Workflow, Skill, Run State, Stage Gate, template, and validator chain.
+The implementation reuses and parameterizes the proven Agent-next Workflow,
+Skill, Run State, Stage Gate, template, and validator chain instead of
+maintaining a parallel execution model.
 
-## Current milestone
+## Architecture summary
 
-R1 through R3 of the reuse-alignment plan are implemented. Agent-new now contains the
-proven Agent-next path resolver, phase router, Run State writer/schema/migrator,
-template copier, artifact validators, test-case validator, and Stage Gate.
-Run state requires project-defined `project_id` and `tracks`; Core does not
-define project-specific identity enums or routing fallbacks.
-
-The following Agent-new additions remain retained:
+The Core includes the path resolver, phase router, Run State
+writer/schema/migrator, template copier, artifact validators, test-case
+validator, Stage Gate, and these project-agnostic capabilities:
 
 - Project Profiles
 - Artifact metadata
 - Declarative Capabilities
+- Declarative Workflow manifests and Stage Gate rules
+- Schema-validated automation providers
 - Knowledge bootstrap layout
 - Artifact inventory and stale propagation
 - Scope-aware dependency planning
 
-R2 adds generic `requirement-analysis`, `test-analysis`, `test-case-design`,
-`automation`, `reporting`, `release-acceptance`, and `zentao-sync` Skills.
+The repository provides generic `requirement-analysis`, `test-analysis`, `test-case-design`,
+`automation`, `test-execution`, `reporting`, `release-acceptance`, and
+`zentao-sync` Skills.
 Capabilities now reference their authoritative Workflow, Phase, and Skill.
+Each `workflows/<id>/workflow.yaml` owns its phase order, documents, output
+scope directory, and phase-specific Gate rules. Automation Skills expose a
+schema-validated `provider.yaml`; Doctor and preparation share one loader.
 Product-specific automation and data rules belong in downstream Project
 Profiles or private extension packages, not this repository.
-R3 connects `inventory`, `run`, `status`, `explain`, `scaffold`, and `gate` to
-that inherited execution chain. Artifact identity, revisions, and traceability
+`inventory`, `run`, `status`, `explain`, `scaffold`, and `gate` use the same
+execution chain. Artifact identity, revisions, and traceability
 live under `runs/`; `outputs/` contains only user-facing deliverables. No
 parallel Adapter SDK or second execution-state model is developed.
 
@@ -78,6 +87,54 @@ overwriting variables supplied by the current shell or CI. Check names and
 presence without exposing values with `agent-next env --group ZENTAO`; see
 [`docs/environment.md`](docs/environment.md).
 
+## Use with Codex or Hermes
+
+Agent-next combines agent-facing Skills with a deterministic local CLI. After
+completing the setup above, expose the repository's bundled Skills through the
+cross-agent project directory:
+
+```bash
+mkdir -p .agents
+ln -s ../skills .agents/skills
+```
+
+Run these commands from the repository root. The symlink keeps the Skills in
+their source location, so updates in `skills/` are immediately available to
+the agent. If `.agents/skills` already exists, reuse or replace it deliberately
+instead of running the link command again.
+
+### Codex
+
+Start Codex in the repository, use `/skills` to confirm that `agent-next` is
+available, then invoke it explicitly with `$agent-next` or describe a matching
+testing-engineering task and let Codex select it:
+
+```text
+$agent-next inspect the available inputs and plan the test_cases goal for checkout
+```
+
+Codex also reads the repository's `AGENTS.md`, which defines the project
+contracts and required verification commands.
+
+### Hermes Agent
+
+Hermes discovers project-local Skills under `.agents/skills`. Trust the cloned
+repository once, then start a new session and invoke the router Skill as a slash
+command:
+
+```bash
+hermes skills trust
+hermes chat -q "/agent-next inspect the available inputs and plan the test_cases goal for checkout"
+```
+
+The router loads only the downstream Skills required by the selected workflow.
+Both hosts can then use the `agent-next` CLI for inventory, planning, Run State,
+artifact creation, and Stage Gates. Remote writes and shared-environment or
+shared-data changes remain explicit confirmation boundaries.
+
+For host-specific behavior, see the official [Codex Skills documentation](https://developers.openai.com/codex/skills)
+and [Hermes Agent Skills documentation](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/skills.md).
+
 ## Validate the example project
 
 ```bash
@@ -89,8 +146,8 @@ Expected result:
 ```text
 OK project shop-platform
 OK knowledge index examples/shop-platform/knowledge/_index.md
-OK capabilities 17
-OK artifact templates 15
+OK capabilities 18
+OK artifact templates 16
 ```
 
 ## Initialize a new project
@@ -120,6 +177,38 @@ Sources must already exist under the repository root. They are registered in
 knowledge. `init` refuses to overwrite an existing Project Profile or knowledge
 root.
 
+For a project that will generate API automation, declare the integration at
+initialization time:
+
+```bash
+agent-next init \
+  --project-id iot-ops \
+  --name "IoT Ops" \
+  --automation api
+```
+
+This writes an API-capable repository entry and an immutable
+`rigorpath-api-test` runtime revision into the Project Profile. It does not
+download anything during initialization. After an automation classification is
+reviewed, prepare the thin consumer project with:
+
+```bash
+agent-next prepare-automation \
+  --project config/projects/iot-ops.yaml \
+  --classification-artifact AUTO-CLASS-001 \
+  --test-cases-artifact TC-SUITE-001 \
+  --implementation-artifact AUTO-IMPL-001 \
+  --run-id automation-login
+```
+
+Both input artifacts must already be registered and ready. Only `A0` or `A1`
+rows whose target is `api` or `hybrid` trigger preparation, and every eligible
+row must name the selected repository as its destination.
+The selected Skill provider creates `repositories/automation/iot-ops-api-test`
+and resolves its pinned dependency. The command then creates a draft
+`automation_implementation` artifact in the same Run State. Use `--no-install`
+for an offline scaffold.
+
 Project knowledge is optional for users. `init` creates an empty internal
 context skeleton so a new project can start from only a description or PRD.
 When requirement work finds stable reusable knowledge, record a proposal file
@@ -140,6 +229,21 @@ The second command previews names and target paths only. If the user explicitly
 chooses “confirm requirement and persist knowledge”, apply those listed
 proposals with `--confirm`; confirming the requirement alone leaves them
 proposed. Existing knowledge pages are never overwritten by this shortcut.
+
+The same `record` command records structured Stage Gate evidence without using
+the compatibility Run State script directly:
+
+```bash
+agent-next record \
+  --run-id checkout-risk \
+  --repository kind=dev,name=shop,path=repositories/product/shop,commit=<sha> \
+  --repository-evidence repo=shop,evidence_type=commit,reference=<sha>,supports=RISK-001 \
+  --required-env api \
+  --checked-env api \
+  --target staging \
+  --confirmation id=CONF-001,action=shared_environment_execution,status=confirmed \
+  --trace from=REQ-001,to=RISK-001,relation=analyzed_by
+```
 
 ## Inspect artifacts and plan a goal
 

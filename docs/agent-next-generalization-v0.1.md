@@ -5,8 +5,7 @@
 > 日期：2026-09-01  
 > 实现根目录：`/Users/phoenine/Documents/workbench/agent-new`
 
-> 实现策略补充：本文必须与 `agent-next-reuse-alignment-audit-v0.1.md` 一起使用。
-> Agent-new 以现有 Agent-next 为母版进行复用和参数化，不按本文重新实现一套平行引擎。
+> 实现策略：以现有 Agent-next 为母版进行复用和参数化，不按本文重新实现一套平行引擎。
 
 ## 1. 文档目的
 
@@ -247,7 +246,10 @@ side_effect: false
 skill: test-case-design
 ```
 
-Workflow 由 Capability 组成，不再由 Core 中的固定 Python 分支定义。
+Workflow 由 `workflows/<id>/workflow.yaml` 声明阶段顺序、阶段文档、输出范围目录和
+阶段 Gate，并由 Capability 组成，不再由 Core 中的固定 Python 分支定义。
+Automation Skill 的 `provider.yaml` 必须通过 `automation-provider` Schema；Doctor
+与执行入口共用同一个 Provider loader。
 
 ## 6. Project Profile
 
@@ -286,6 +288,11 @@ repositories:
       capabilities: [web]
 
 integrations:
+  api_automation:
+    skill: pytest-yaml-api
+    config:
+      runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_revision: <immutable-tag-or-full-commit>
   requirement_tracker:
     skill: zentao-sync
   issue_tracker:
@@ -453,9 +460,9 @@ Intake/Baseline Gate。
 
 如果缺失项需要外部选择或会实质改变结果，例如存在两份互相冲突的需求基线，Planner 必须暂停并请求用户决定，不能自行选择权威版本。
 
-### 8.5 M3 本地产物生命周期
+### 8.5 本地产物生命周期
 
-M3 将一次本地生成拆成可审计的三个动作：
+一次本地生成拆成可审计的三个动作：
 
 1. `plan` 根据当前 Inventory 选择 Capability。
 2. `run` 将 Capability 映射到既有 Workflow/Phase/Skill，并准备同一份 Run State。
@@ -646,6 +653,10 @@ Compatibility，并为每类记录已覆盖的 Risk / Test Point、Coverage Gap 
 
 分类必须记录理由、依赖、预计稳定性和阻塞项。没有自动化仓库时仍可完成分类，但不能声称已经实现。
 
+分类同时记录自动化等级 `A0/A1/M0/N0`。目标以核心验证对象为准：页面仅用于准备数据时，
+接口响应或后端状态仍是 `api`；只有浏览器和接口两类断言都不可替代时才是 `hybrid`。
+生成前必须先匹配现有覆盖，并记录依赖、副作用、目标仓库和决定依据。
+
 ### 9.9 自动化实现
 
 API 与 Web 自动化分别由 Skill 实现；Skill 优先调用项目已有测试框架和工具。只有多个
@@ -659,6 +670,23 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 - 记录文件、命令、结果和未验证项。
 - 不自动向保护分支提交或推送。
 
+内置的 `pytest-yaml-api` 是 `api-automation` slot 的一个通用实现：它生成薄 pytest
+项目与可追溯 YAML case，并复用独立版本化的 `rigorpath-api-test` 运行时。Core 不包含
+产品端点、认证或租户逻辑；每个 `AUTO-###` 必须保留 `TP-###`、`TC-###` 及断言来源，
+静态校验失败或存在悬空引用时不得进入执行阶段。性能/Locust 不属于该实现的默认 MVP。
+当 Project Profile 声明唯一的 API automation repository 时，Skill 在该
+`repositories.automation[].path` 生成业务测试项目，并通过 `uv sync` 从
+`runtime_url@runtime_revision` 获取运行时。revision 必须是不可变 tag 或 commit；已有非空
+目录只复用、不覆盖。
+
+`agent-next init --automation api` 从声明式 automation preset 生成上述 repository 与
+integration 配置，但初始化阶段不访问网络。完成并确认 `automation_classification` 后，
+`agent-next prepare-automation` 仅对 `A0/A1 + api/hybrid` 行调用 Profile 选择的 Skill
+provider。命令只接受已登记且 ready 的分类与测试用例 Artifact，要求分类 Destination
+与实际仓库一致，并将准备结果登记为同一 Run State 下的 `automation_implementation`；
+无符合条件的行明确 skip。Core 只读取 provider contract，不包含 pytest、端点、认证或
+产品规则。
+
 ### 9.10 测试执行与报告
 
 执行记录必须区分：
@@ -671,6 +699,11 @@ Skill 确实需要共享稳定底层驱动时才增加薄 Adapter。它们共享
 - infrastructure_error
 
 报告不得把 `blocked`、`skipped` 或 `not_run` 计为通过。报告结论必须从执行记录和现有证据计算，不能只使用生成文本中的主观判断。
+
+`test-execution` Skill 负责确认后的 runner 执行与证据归一化。对自动化执行，它从 JUnit
+XML 和 YAML case inventory 生成 `execution_record`，保留命令、退出码、revision、执行窗口
+及证据路径；没有 runner 结果的计划用例是 `not_run`，runner/collection 崩溃是
+`infrastructure_error`。Reporting 只消费规范化记录。
 
 ## 10. Bug Regression 工作流
 
@@ -790,14 +823,21 @@ Release 不复制 Feature 或 Bug 的测试资产。验收计划通过 Artifact 
 
 ### 12.3 CLI 入口
 
-v0.1 建议提供：
+当前统一 CLI 提供：
 
 ```bash
 agent-next init
 agent-next doctor
+agent-next env
 agent-next inventory
+agent-next register
 agent-next plan --project <profile> --workflow <pack> --scope <scope> --goal test_cases
 agent-next run --project <profile> --workflow <pack> --capability <id> --run-id <run>
+agent-next scaffold
+agent-next gate
+agent-next record
+agent-next knowledge
+agent-next prepare-automation
 agent-next status --run-id <run>
 agent-next explain --run-id <run>
 ```
@@ -807,10 +847,17 @@ agent-next explain --run-id <run>
 | 命令 | 职责 |
 |---|---|
 | `init` | 创建 Project Profile 和知识库骨架 |
-| `doctor` | 检查配置、仓库、知识、环境、Skill 和可选 Adapter 可用性 |
+| `doctor` | 检查 Profile、知识、Workflow、模板和已选择的 automation provider |
+| `env` | 只显示环境变量是否配置，不显示值或声称连通性有效 |
 | `inventory` | 盘点已有资产及其 revision、状态和缺口 |
+| `register` | 将已有本地文件登记为 Artifact，不复制或改写正文 |
 | `plan` | 只生成计划，不执行 |
 | `run` | 将选定 Capability 写入既有 Run State，准备 Workflow/Phase/Skill 执行上下文 |
+| `scaffold` | 从正式模板创建 draft Artifact 并登记 Run State |
+| `gate` | 执行 Artifact Validator 与当前 Stage Gate，可显式标记 ready |
+| `record` | 记录当前 Run 的知识、仓库证据、环境检查、确认、追溯关系和说明 |
+| `knowledge` | 预览或显式确认可复用知识提案 |
+| `prepare-automation` | 对已归类的 API 用例准备 Profile 选择的 automation consumer |
 | `status` | 展示当前 Run 和 Artifact 状态 |
 | `explain` | 展示 Gate、证据、Skill receipt 和决策原因 |
 
@@ -917,6 +964,7 @@ v0.1 复用 Agent-next 已有 Skill 体系。Workflow/Capability 声明所需 Sk
 - `case-management-sync`
 - `api-automation`
 - `web-automation`
+- `test-execution`
 - `execution-environment`
 - `reporting`
 
@@ -924,12 +972,15 @@ Project Profile 将 slot 映射到具体 Skill：
 
 ```yaml
 integrations:
+  api_automation:
+    skill: pytest-yaml-api
+    config:
+      runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_revision: <immutable-tag-or-full-commit>
   test_management:
     skill: zentao-sync
-    capabilities: [read_cases, preview_sync, create_cases, update_cases]
-    side_effects:
-      create_cases: remote_write
-      update_cases: remote_write
+    config:
+      module_mapping: config/zentao-modules.yaml
 ```
 
 ### 15.2 Adapter 的有限职责
@@ -987,9 +1038,9 @@ Release 资产仍应引用 Feature/Bug 资产，而不是复制它们。
 3. Core 测试不得依赖任何真实项目的数据、目录、凭证或私有 Skill。
 4. 项目扩展的兼容验证在其下游包中完成。
 
-## 18. v0.1 实现范围
+## 18. v0.1 产品边界
 
-### 18.1 必须实现
+### 18.1 已支持范围
 
 - Project Profile Schema 和加载器
 - 标准知识库模板和 `init`
@@ -1002,12 +1053,13 @@ Release 资产仍应引用 Feature/Bug 资产，而不是复制它们。
 - Bug Regression 基础链路
 - Release Acceptance 基础链路
 - 迁移并参数化 Agent-next 已有 Router、Run State、Stage Gate、模板和 Validator
-- 文件系统型文档/仓库 Skill 与 Project Profile 路由
-- Skill slot 映射和 mock Skill；Adapter 只在现有能力无法复用时实现薄驱动
-- `doctor`、`inventory`、`plan`、`run`、`status`、`explain`
+- Project Profile 仓库路由与 Skill slot 映射；Adapter 只在现有能力无法复用时实现薄驱动
+- 需求、风险、测试点、测试用例、自动化、执行、报告与禅道同步 Skills
+- `doctor`、`inventory`、`plan`、`run`、`scaffold`、`gate`、`record`、
+  `knowledge`、`prepare-automation`、`status`、`explain`
 - 下游项目扩展接口和通用契约测试
 
-### 18.2 可以延后
+### 18.2 非目标
 
 - 完整 Web UI
 - 多用户权限系统
@@ -1018,45 +1070,7 @@ Release 资产仍应引用 Feature/Bug 资产，而不是复制它们。
 - 生产环境自动执行
 - 跨项目共享知识市场
 
-## 19. 里程碑
-
-### M0：新仓库基线
-
-- 建立目录、开发规范、测试入口和 CI。
-- 固化本文中的术语和 Schema 决策。
-- 添加最小示例项目。
-
-### M1：Project 与知识库
-
-- 完成 Profile Schema、加载器和校验器。
-- 完成知识库模板、初始化和 Knowledge Gap。
-- 支持空项目成功启动。
-
-### M2：Artifact 与 Planner
-
-- 完成 Artifact Inventory、revision、stale 计算。
-- 完成 Capability 依赖解析和可解释计划。
-- 支持从任意已有资产规划到目标资产。
-
-### M3：通用工作流
-
-- 完成 Feature Quality 文档链路。
-- 完成 Bug Regression 和 Release Acceptance 基础 Playbook。
-- 完成模板与 Gate 验证。
-
-### M4：现有能力复用与自动化
-
-- 按 `agent-next-reuse-alignment-audit-v0.1.md` 迁移 Router、Run State、Stage Gate、模板、Validator 和 Skills。
-- 将现有禅道 Skill 参数化为 `zentao-sync`，继续调用 `zentao-cli` 并保留 preview/confirm/write 闭环。
-- 将现有 API/Web 自动化 Skills 接入 Profile slot，不重新实现测试框架。
-- 完成执行记录和报告汇总。
-
-### M5：扩展接口验证
-
-- 验证下游 Profile 和私有 Skill 能接入通用契约。
-- 用无业务含义的示例验证仓库路由和三类工作流。
-
-## 20. v0.1 验收标准
+## 19. v0.1 验收标准
 
 v0.1 至少通过以下场景：
 
@@ -1073,9 +1087,9 @@ v0.1 至少通过以下场景：
 11. **项目隔离**：两个 Project 的配置、知识、Run 和 Output 不互相污染。
 12. **扩展隔离**：具体项目的 Profile、知识和 Skill 不进入通用仓库。
 
-## 21. 测试策略
+## 20. 测试策略
 
-### 21.1 单元测试
+### 20.1 单元测试
 
 - Profile Schema 校验
 - Artifact 状态和 stale 传播
@@ -1084,14 +1098,14 @@ v0.1 至少通过以下场景：
 - Gate 错误码和修复建议
 - 输出路由和路径安全
 
-### 21.2 契约测试
+### 20.2 契约测试
 
 - 每种 Artifact 模板和 Validator
 - 每种集成 Skill 的 read/preview/write 契约；存在薄 Adapter 时补充其驱动契约
 - Workflow Pack 与 Capability Schema
 - Run State 的序列化和迁移
 
-### 21.3 场景测试
+### 20.3 场景测试
 
 - 空知识库
 - 仅 PRD
@@ -1103,11 +1117,11 @@ v0.1 至少通过以下场景：
 - 上游变更导致下游 stale
 - 远端写入确认
 
-### 21.4 真实行为验证
+### 20.4 真实行为验证
 
 自动化测试只能证明契约和受控环境行为。涉及浏览器选中状态、真实平台写入、共享环境执行和报告可访问性时，必须保留运行时验证步骤，不能只依据单元测试宣称完成。
 
-## 22. 可观测性与错误体验
+## 21. 可观测性与错误体验
 
 每次执行应产生结构化 Event：
 
@@ -1130,19 +1144,7 @@ details:
 
 不得只返回内部异常、Schema 路径或 Python traceback。
 
-## 23. 待确认设计决策
-
-以下问题不阻塞文档落地，但应在 M0/M1 明确：
-
-1. Core 首选 Python 包、独立 CLI，还是同时提供 SDK。
-2. Workflow/Capability 配置使用纯 YAML，还是 YAML + Python 插件。
-3. Artifact 内容统一使用 Markdown，还是允许 JSON/YAML 原生类型。
-4. Project Profile 是否支持继承多个 Profile。
-5. 本地知识库是否继续采用 `related.path` 显式路由，或引入独立索引文件。
-6. v0.1 首个真实开源示例项目选用什么技术栈和业务场景。
-7. 下游扩展包采用何种版本和兼容策略。
-
-## 24. 最终用户心智模型
+## 22. 最终用户心智模型
 
 Agent-next 对用户暴露的核心概念应限制为五个：
 

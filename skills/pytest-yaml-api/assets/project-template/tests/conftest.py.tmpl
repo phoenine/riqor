@@ -1,0 +1,12 @@
+from pathlib import Path
+
+import pytest
+from rigorpath_api_test import iter_cases, load_suites
+
+
+CASES = iter_cases(load_suites([Path("testcases")]))
+
+
+def pytest_generate_tests(metafunc):
+    if "api_case" in metafunc.fixturenames:
+        metafunc.parametrize("api_case", CASES, ids=[case["id"] for case in CASES])
