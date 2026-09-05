@@ -297,7 +297,7 @@ integrations:
   api_automation:
     skill: pytest-yaml-api
     config:
-      runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_url: https://github.com/phoenine/rigor-test.git
       runtime_revision: <immutable-tag-or-full-commit>
   requirement_tracker:
     skill: zentao-sync
@@ -993,7 +993,7 @@ integrations:
   api_automation:
     skill: pytest-yaml-api
     config:
-      runtime_url: https://github.com/phoenine/rigorpath_api_test.git
+      runtime_url: https://github.com/phoenine/rigor-test.git
       runtime_revision: <immutable-tag-or-full-commit>
   web_automation:
     skill: pytest-playwright-web

@@ -32,7 +32,7 @@ class DoctorTests(unittest.TestCase):
                 "api_automation": {
                     "skill": "pytest-yaml-api",
                     "config": {
-                        "runtime_url": "https://github.com/phoenine/rigorpath_api_test.git",
+                        "runtime_url": "https://github.com/phoenine/rigor-test.git",
                         "runtime_revision": "main",
                     },
                 }
@@ -60,7 +60,7 @@ class DoctorTests(unittest.TestCase):
                 "api_automation": {
                     "skill": "pytest-yaml-api",
                     "config": {
-                        "runtime_url": "https://github.com/phoenine/rigorpath_api_test.git",
+                        "runtime_url": "https://github.com/phoenine/rigor-test.git",
                         "runtime_revision": "957edc6672ef18d3c06fb5b34f3089fcf548640c",
                     },
                 }

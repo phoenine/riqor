@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/2.png" alt="Rigor 标志" width="520">
+  <img src="docs/images/2.png" alt="rigor 标志" width="520">
 </p>
 
 # Riqor（Agent-next）

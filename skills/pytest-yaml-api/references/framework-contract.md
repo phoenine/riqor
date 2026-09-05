@@ -26,5 +26,5 @@ Bootstrap rules:
 - Missing execution environment causes an explicit pytest skip; malformed cases
   fail collection.
 - The default runtime URL is
-  `https://github.com/phoenine/rigorpath_api_test.git`; a Project Profile may
+  `https://github.com/phoenine/rigor-test.git`; a Project Profile may
   replace it. A moving branch such as `main` is not a valid revision lock.
