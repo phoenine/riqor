@@ -63,8 +63,11 @@ class DistributionTests(unittest.TestCase):
             with zipfile.ZipFile(wheel) as archive:
                 names = set(archive.namelist())
                 self.assertIn("schemas/project-profile.schema.json", names)
+                self.assertIn("schemas/automation-provider.schema.json", names)
+                self.assertIn("schemas/workflow.schema.json", names)
                 self.assertIn("templates/artifacts/requirement-spec.md.tmpl", names)
                 self.assertIn("workflows/feature-quality/README.md", names)
+                self.assertIn("workflows/feature-quality/workflow.yaml", names)
                 self.assertIn("skills/pytest-yaml-api/provider.yaml", names)
                 self.assertIn("config/automation-presets.yaml", names)
                 archive.extractall(installed)

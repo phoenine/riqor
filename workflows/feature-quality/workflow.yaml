@@ -1,0 +1,57 @@
+schema_version: 1
+id: feature-quality
+readme: README.md
+scope_directory: features
+phases:
+  - name: Intake
+    document: phases/01-intake.md
+    gate:
+      required_skills: [requirement-analysis]
+      knowledge: true
+      knowledge_plan_resolved: true
+      require_intake_input: true
+  - name: Requirement Specification
+    document: phases/02-requirement-specification.md
+    gate:
+      required_skills: [requirement-analysis]
+      artifact_types: [requirement_spec]
+      knowledge: true
+  - name: Risk Analysis
+    document: phases/03-risk-analysis.md
+    gate:
+      required_skills: [test-analysis]
+      artifact_types: [risk_analysis]
+      knowledge: true
+      repository_evidence: true
+  - name: Test Design
+    document: phases/04-test-design.md
+    gate:
+      required_skills: [test-analysis, test-case-design]
+      artifact_types: [test_points]
+      knowledge: true
+  - name: Optional Case Sync Or Generation
+    document: phases/05-optional-case-sync-or-generation.md
+    gate:
+      optional: true
+      optional_artifact_types: [automation_classification, automation_implementation]
+      require_note_prefixes: ["external_sync:"]
+  - name: Optional Case Execute
+    document: phases/06-optional-case-execute.md
+    gate:
+      optional: true
+      required_skills_any: [automation, test-case-design]
+      optional_artifact_types: [execution_record]
+      require_note_prefixes: ["data_injection:"]
+  - name: Optional Bug Report
+    document: phases/07-optional-bug-report.md
+    gate:
+      optional: true
+      required_skills: [reporting]
+      optional_artifact_types: [bug_report]
+  - name: Optional Test Report
+    document: phases/08-optional-test-report.md
+    gate:
+      optional: true
+      required_skills: [reporting]
+      artifact_types: [run_summary]
+      traceability: true

@@ -1,0 +1,46 @@
+schema_version: 1
+id: release-acceptance
+readme: README.md
+scope_directory: releases
+phases:
+  - name: Release Baseline
+    document: phases/01-release-baseline.md
+    gate:
+      required_skills: [release-acceptance]
+      knowledge: true
+      repository_evidence: true
+      require_environment_target: true
+      require_release_scope_tracks: true
+      require_note_prefixes: ["release_baseline:"]
+  - name: Scope Collection
+    document: phases/02-scope-collection.md
+    gate:
+      required_skills: [release-acceptance, requirement-analysis, test-analysis]
+      knowledge: true
+      require_release_scope_tracks: true
+      require_note_prefixes: ["release_scope:"]
+  - name: Acceptance Plan
+    document: phases/03-acceptance-plan.md
+    gate:
+      required_skills: [release-acceptance, test-case-design, automation]
+      artifact_types: [acceptance_plan]
+      knowledge: true
+  - name: Acceptance Execution
+    document: phases/04-acceptance-execution.md
+    gate:
+      required_skills: [automation, release-acceptance]
+      optional_artifact_types: [execution_record]
+      require_note_prefixes_always: ["automation_execution_plan:", "automation_execution_skip:"]
+      require_note_prefixes: ["execution_evidence:", "data_injection:", "optional_skip:"]
+  - name: Release Decision
+    document: phases/05-release-decision.md
+    gate:
+      required_skills: [release-acceptance, reporting]
+      artifact_types: [acceptance_report]
+      traceability: true
+      require_note_prefixes: ["release_decision:"]
+  - name: Optional Post-release Observation
+    document: phases/06-optional-post-release-observation.md
+    gate:
+      optional: true
+      required_skills: [release-acceptance, reporting]

@@ -41,7 +41,7 @@ class DoctorTests(unittest.TestCase):
         report = DoctorReport()
         _check_api_automation(profile, ROOT, report)
         self.assertIn(
-            "api automation: runtime_revision must be an immutable tag or commit",
+            "api automation: automation provider config runtime_revision must be an immutable tag or commit",
             report.errors,
         )
 

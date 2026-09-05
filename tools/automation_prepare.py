@@ -6,13 +6,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+from .automation_provider import (
+    AutomationProviderBinding,
+    AutomationProviderError,
+    consumer_dependency,
+    load_automation_provider,
+)
 from .inventory import ArtifactRecord, load_inventory
 from .validate_artifact import validate_artifact_file
-
-
-MOVING_REVISIONS = {"main", "master", "HEAD"}
 
 
 class AutomationPrepareError(ValueError):
@@ -34,6 +35,7 @@ class AutomationSelection:
     run_inputs: tuple[ArtifactRecord, ...]
     eligible_cases: tuple[str, ...]
     repository: dict[str, Any] | None
+    provider: AutomationProviderBinding | None
 
 
 def _classification_rows(text: str) -> list[tuple[str, str, str, str]]:
@@ -48,35 +50,6 @@ def _classification_rows(text: str) -> list[tuple[str, str, str, str]]:
     return rows
 
 
-def _select_api_repository(profile: dict[str, Any], repository_id: str | None) -> dict[str, Any]:
-    candidates = [
-        item
-        for item in profile.get("repositories", {}).get("automation", [])
-        if "api" in item.get("capabilities", [])
-        and (repository_id is None or item.get("id") == repository_id)
-    ]
-    if len(candidates) != 1:
-        raise AutomationPrepareError("select exactly one API automation repository")
-    return candidates[0]
-
-
-def _load_provider(root: Path, profile: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    integration = profile.get("integrations", {}).get("api_automation")
-    if not isinstance(integration, dict) or not integration.get("skill"):
-        raise AutomationPrepareError("integrations.api_automation.skill is required")
-    skill = str(integration["skill"])
-    if "/" in skill or ".." in skill:
-        raise AutomationPrepareError("automation skill name is unsafe")
-    provider_path = root / "skills" / skill / "provider.yaml"
-    try:
-        provider = yaml.safe_load(provider_path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
-        raise AutomationPrepareError(f"cannot load automation provider {provider_path}: {exc}") from exc
-    if not isinstance(provider, dict) or provider.get("capability") != "api":
-        raise AutomationPrepareError(f"automation provider {skill} does not declare api capability")
-    return integration, provider
-
-
 def _render_command(parts: list[Any], destination: Path) -> list[str]:
     return [str(part).replace("{destination}", str(destination)) for part in parts]
 
@@ -85,7 +58,7 @@ def render_automation_implementation(
     *,
     project_id: str,
     repository_id: str,
-    runtime_revision: str,
+    runtime_dependency: str,
     result: AutomationPrepareResult,
     classification_reference: str,
     test_cases_reference: str,
@@ -113,7 +86,7 @@ def render_automation_implementation(
 
 - 项目：{project_id}
 - 自动化仓库：{repository_id}
-- 框架与版本：rigorpath-api-test@{runtime_revision}
+- 框架依赖：{runtime_dependency}
 - 实现模式：bootstrap
 - 目标环境：not_executed
 
@@ -224,9 +197,18 @@ def select_automation_inputs(
     add_input(classification)
     if not eligible:
         return AutomationSelection(
-            classification, test_cases, tuple(run_inputs), (), None
+            classification, test_cases, tuple(run_inputs), (), None, None
         )
-    repository = _select_api_repository(profile, repository_id)
+    try:
+        provider = load_automation_provider(
+            root=root,
+            profile=profile,
+            capability="api",
+            repository_id=repository_id,
+        )
+    except AutomationProviderError as exc:
+        raise AutomationPrepareError(str(exc)) from exc
+    repository = provider.repository
     mismatches = sorted({row[3] for row in eligible if row[3] != repository["id"]})
     if mismatches:
         raise AutomationPrepareError(
@@ -239,6 +221,7 @@ def select_automation_inputs(
         tuple(run_inputs),
         tuple(row[0] for row in eligible),
         repository,
+        provider,
     )
 
 
@@ -246,7 +229,6 @@ def prepare_api_automation(
     *,
     root: Path,
     profile_path: Path,
-    profile: dict[str, Any],
     selection: AutomationSelection,
     install: bool = True,
 ) -> AutomationPrepareResult:
@@ -255,15 +237,10 @@ def prepare_api_automation(
         return AutomationPrepareResult("skipped", None, ())
 
     assert selection.repository is not None
+    assert selection.provider is not None
     repository = selection.repository
-    integration, provider = _load_provider(root, profile)
-    config = integration.get("config", {})
-    runtime_url = str(config.get("runtime_url", "")).strip()
-    revision = str(config.get("runtime_revision", "")).strip()
-    if not runtime_url.startswith(("https://", "ssh://", "git@")):
-        raise AutomationPrepareError("runtime_url must be an HTTPS or SSH Git URL")
-    if not revision or revision in MOVING_REVISIONS:
-        raise AutomationPrepareError("runtime_revision must be an immutable tag or commit")
+    binding = selection.provider
+    provider = binding.provider
 
     destination = (root / str(repository["path"])).resolve()
     try:
@@ -271,30 +248,20 @@ def prepare_api_automation(
     except ValueError as exc:
         raise AutomationPrepareError("automation repository path escapes workspace root") from exc
 
-    dependency = f"git+{runtime_url}@{revision}"
-    pyproject = destination / "pyproject.toml"
-    prepared = destination.is_dir() and pyproject.is_file()
+    dependency = consumer_dependency(binding)
+    manifest = destination / provider["consumer"]["manifest"]
+    prepared = destination.is_dir() and manifest.is_file()
     if prepared:
-        if dependency not in pyproject.read_text(encoding="utf-8"):
+        if dependency not in manifest.read_text(encoding="utf-8"):
             raise AutomationPrepareError(
-                f"existing automation project is not pinned to {revision}: {pyproject}"
+                f"existing automation project lacks configured dependency: {manifest}"
             )
         status = "reused"
     else:
-        prepare = provider.get("prepare", {})
-        script_value = prepare.get("script") if isinstance(prepare, dict) else None
-        if not isinstance(script_value, str):
-            raise AutomationPrepareError("automation provider prepare.script is required")
-        skill_root = (root / "skills" / str(integration["skill"])).resolve()
+        prepare = provider["prepare"]
+        script_value = prepare["script"]
+        skill_root = binding.provider_path.parent.resolve()
         script = (skill_root / script_value).resolve()
-        try:
-            script.relative_to(skill_root)
-        except ValueError as exc:
-            raise AutomationPrepareError(
-                "automation provider prepare.script escapes the Skill root"
-            ) from exc
-        if not script.is_file():
-            raise AutomationPrepareError(f"automation provider script does not exist: {script}")
         command = [
             sys.executable,
             str(script),
@@ -312,9 +279,7 @@ def prepare_api_automation(
         status = "created"
 
     if install:
-        install_command = provider.get("prepare", {}).get("install_command")
-        if not isinstance(install_command, list) or not install_command:
-            raise AutomationPrepareError("automation provider install_command is required")
+        install_command = provider["prepare"]["install_command"]
         try:
             subprocess.run(_render_command(install_command, destination), check=True)
         except subprocess.CalledProcessError as exc:

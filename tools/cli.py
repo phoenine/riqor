@@ -16,6 +16,7 @@ from .automation_prepare import (
     render_automation_implementation,
     select_automation_inputs,
 )
+from .automation_provider import consumer_dependency
 from .bootstrap import InitError, init_project
 from .contracts import ContractError, load_yaml, validate_project_profile
 from .doctor import run_doctor
@@ -163,6 +164,33 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--knowledge-plan-summary")
     record.add_argument("--knowledge-plan-evidence", action="append", default=[])
     record.add_argument("--knowledge-proposal", action="append", type=Path, default=[])
+    record.add_argument(
+        "--repository",
+        action="append",
+        default=[],
+        help="kind=dev,name=repo,path=repositories/dev/repo[,commit=...]",
+    )
+    record.add_argument(
+        "--repository-evidence",
+        action="append",
+        default=[],
+        help="repo=name,evidence_type=file,reference=path[,supports=id]",
+    )
+    record.add_argument("--required-env", action="append", default=[])
+    record.add_argument("--checked-env", action="append", default=[])
+    record.add_argument("--target")
+    record.add_argument(
+        "--confirmation",
+        action="append",
+        default=[],
+        help="id=...,action=...,status=required|confirmed|rejected|not_required",
+    )
+    record.add_argument(
+        "--trace",
+        action="append",
+        default=[],
+        help="from=REQ-001,to=RISK-001,relation=mitigated_by",
+    )
     record.add_argument("--note", action="append", default=[])
     record.add_argument("--root", type=Path, default=Path.cwd())
 
@@ -238,6 +266,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     knowledge_plan_evidence=args.knowledge_plan_evidence,
                     notes=args.note,
                     knowledge_proposal_files=args.knowledge_proposal,
+                    repositories=args.repository,
+                    repository_evidence=args.repository_evidence,
+                    required_environment=args.required_env,
+                    checked_environment=args.checked_env,
+                    environment_target=args.target,
+                    confirmations=args.confirmation,
+                    traceability=args.trace,
                 )
                 print(f"OK recorded evidence {path.relative_to(root)}")
                 return 0
@@ -361,7 +396,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = prepare_api_automation(
                 root=root,
                 profile_path=profile_path,
-                profile=profile,
                 selection=selection,
                 install=not args.no_install,
             )
@@ -423,14 +457,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run_id=args.run_id,
             )
             assert selection.repository is not None
+            assert selection.provider is not None
             implementation = render_automation_implementation(
                 project_id=profile["project"]["id"],
                 repository_id=str(selection.repository["id"]),
-                runtime_revision=str(
-                    profile["integrations"]["api_automation"]["config"][
-                        "runtime_revision"
-                    ]
-                ),
+                runtime_dependency=consumer_dependency(selection.provider),
                 result=result,
                 classification_reference=classification_reference,
                 test_cases_reference=test_cases_reference,

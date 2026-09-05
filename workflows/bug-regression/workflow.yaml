@@ -1,0 +1,60 @@
+schema_version: 1
+id: bug-regression
+readme: README.md
+scope_directory: bugs
+phases:
+  - name: Bug Intake
+    document: phases/01-bug-intake.md
+    gate:
+      required_skills: [requirement-analysis]
+      knowledge: true
+      require_bug_intake: true
+      require_note_prefixes: ["bug_surface:"]
+  - name: Change Scope
+    document: phases/02-change-scope.md
+    gate:
+      required_skills: [test-analysis]
+      artifact_types: [change_scope]
+      knowledge: true
+      repository_evidence: true
+  - name: Impact Analysis
+    document: phases/03-impact-analysis.md
+    gate:
+      required_skills: [test-analysis]
+      artifact_types: [risk_analysis]
+      knowledge: true
+      repository_evidence: true
+  - name: Coverage Match
+    document: phases/04-coverage-match.md
+    gate:
+      required_skills: [test-case-design, automation]
+      artifact_types: [coverage_match]
+      knowledge: true
+  - name: Decision Gate
+    document: phases/05-decision-gate.md
+    gate:
+      required_skills: [test-case-design, automation]
+      require_note_prefixes: ["decision_path:"]
+  - name: Regression Plan
+    document: phases/06-regression-plan.md
+    gate:
+      required_skills: [test-case-design, automation, reporting]
+      artifact_types: [regression_plan]
+      require_note_prefixes: ["regression_strategy:"]
+      conditional_artifact_requirements:
+        - note_prefix: "decision_path:"
+          note_contains: supplement_cases
+          artifact_types: [test_cases]
+  - name: Execution
+    document: phases/07-execution.md
+    gate:
+      optional: true
+      required_skills_any: [test-case-design, automation]
+      optional_artifact_types: [execution_record]
+      require_note_prefixes: ["data_injection:"]
+  - name: Regression Report
+    document: phases/08-regression-report.md
+    gate:
+      required_skills: [reporting]
+      artifact_types: [regression_report]
+      traceability: true

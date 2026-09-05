@@ -8,6 +8,8 @@ These instructions apply to the entire repository.
 - Project Profile contract: `schemas/project-profile.schema.json`
 - Artifact contract: `schemas/artifact.schema.json`
 - Capability contract: `schemas/capability.schema.json`
+- Workflow Pack contract: `schemas/workflow.schema.json`
+- Automation Provider contract: `schemas/automation-provider.schema.json`
 
 ## Implementation rules
 

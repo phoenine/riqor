@@ -22,6 +22,8 @@ validator, Stage Gate, and these project-agnostic capabilities:
 - Project Profiles
 - Artifact metadata
 - Declarative Capabilities
+- Declarative Workflow manifests and Stage Gate rules
+- Schema-validated automation providers
 - Knowledge bootstrap layout
 - Artifact inventory and stale propagation
 - Scope-aware dependency planning
@@ -30,6 +32,9 @@ The repository provides generic `requirement-analysis`, `test-analysis`, `test-c
 `automation`, `test-execution`, `reporting`, `release-acceptance`, and
 `zentao-sync` Skills.
 Capabilities now reference their authoritative Workflow, Phase, and Skill.
+Each `workflows/<id>/workflow.yaml` owns its phase order, documents, output
+scope directory, and phase-specific Gate rules. Automation Skills expose a
+schema-validated `provider.yaml`; Doctor and preparation share one loader.
 Product-specific automation and data rules belong in downstream Project
 Profiles or private extension packages, not this repository.
 `inventory`, `run`, `status`, `explain`, `scaffold`, and `gate` use the same
@@ -168,6 +173,21 @@ The second command previews names and target paths only. If the user explicitly
 chooses “confirm requirement and persist knowledge”, apply those listed
 proposals with `--confirm`; confirming the requirement alone leaves them
 proposed. Existing knowledge pages are never overwritten by this shortcut.
+
+The same `record` command records structured Stage Gate evidence without using
+the compatibility Run State script directly:
+
+```bash
+agent-next record \
+  --run-id checkout-risk \
+  --repository kind=dev,name=shop,path=repositories/product/shop,commit=<sha> \
+  --repository-evidence repo=shop,evidence_type=commit,reference=<sha>,supports=RISK-001 \
+  --required-env api \
+  --checked-env api \
+  --target staging \
+  --confirmation id=CONF-001,action=shared_environment_execution,status=confirmed \
+  --trace from=REQ-001,to=RISK-001,relation=analyzed_by
+```
 
 ## Inspect artifacts and plan a goal
 

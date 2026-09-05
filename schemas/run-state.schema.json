@@ -54,7 +54,7 @@
     },
     "entry": {
       "type": "string",
-      "enum": ["feature-quality", "bug-regression", "release-acceptance"]
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
     },
     "workflow": {
       "type": "string",

@@ -16,6 +16,7 @@ from .run_state import load_state as load_run_state, sha256_file
 from .stage_gate import check_state, write_gate_result
 from .validate_artifact import validate_artifact_file
 from .validate_test_cases import validate_test_case_file
+from .workflow_registry import WorkflowRegistryError, load_workflow
 
 
 @dataclass(frozen=True)
@@ -73,12 +74,6 @@ def attach_artifact_inputs(
         if not registered:
             raise ArtifactActionError(f"run state does not exist: runs/{run_id}/state.json")
 
-
-SCOPE_DIRECTORIES = {
-    "feature-quality": "features",
-    "bug-regression": "bugs",
-    "release-acceptance": "releases",
-}
 
 ARTIFACT_FILENAMES = {
     artifact_type: f"{template_id}.md"
@@ -192,7 +187,11 @@ def scaffold_artifact(
         )
 
     artifact_root = artifact_root_for(profile)
-    scope_directory = SCOPE_DIRECTORIES[str(metadata["workflow"])]
+    try:
+        workflow = load_workflow(root, str(metadata["workflow"]))
+    except WorkflowRegistryError as exc:
+        raise ArtifactActionError(str(exc)) from exc
+    scope_directory = workflow.scope_directory
     relative_directory = artifact_root / scope_directory / scope_id
     content_path = relative_directory / ARTIFACT_FILENAMES[artifact_type]
     registry_run_id = run_id or "inventory-only"

@@ -78,6 +78,7 @@ class StageGateTests(unittest.TestCase):
     def test_repo_root_controls_live_skill_receipt_validation(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
+            shutil.copytree(ROOT / "workflows", root / "workflows")
             destination = root / "skills/agent-next"
             destination.parent.mkdir(parents=True)
             shutil.copytree(ROOT / "skills/agent-next", destination)

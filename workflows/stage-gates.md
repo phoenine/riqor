@@ -7,9 +7,9 @@ the next phase.
 
 ## Machine Enforcement
 
-Pass conditions in workflow files are **human guidance only**.
-`tools/stage_gate.py` checks **whether the gate passes**. When prose and machine
-rules differ, **`stage_gate.py` wins** for pass/fail.
+Phase-specific machine rules live in each `workflows/<id>/workflow.yaml`.
+`tools/stage_gate.py` loads those declarations and checks whether the gate
+passes. When prose and machine rules differ, the Workflow manifest wins.
 
 Run the gate before presenting a phase as complete:
 
@@ -30,7 +30,7 @@ Duplicate definitions, dangling `REQ/RISK/TP/TC/AUTO/BR/Q` references, and undef
 
 ### Machine Rules By Phase
 
-Authoritative implementation: `tools/stage_gate.py` → `PHASE_RULES`.
+Authoritative declarations: `workflows/<id>/workflow.yaml` → `phases[].gate`.
 
 | Entry | Phase | Machine-enforced (phase-specific) |
 |---|---|---|

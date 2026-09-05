@@ -39,6 +39,7 @@ class LifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             shutil.copytree(ROOT / "skills", root / "skills")
+            shutil.copytree(ROOT / "workflows", root / "workflows")
             capabilities = load_capabilities(ROOT, "feature-quality").records
             intake = next(item for item in capabilities if item.capability_id == "feature-intake")
             requirement = next(
@@ -79,6 +80,7 @@ class LifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             shutil.copytree(ROOT / "skills", root / "skills")
+            shutil.copytree(ROOT / "workflows", root / "workflows")
             capability = next(
                 item
                 for item in load_capabilities(ROOT, "feature-quality").records

@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .automation_provider import (
+    AutomationProviderError,
+    consumer_dependency,
+    load_automation_provider,
+)
 from .artifacts import load_template_registry
 from .contracts import (
     ContractError,
@@ -12,9 +17,7 @@ from .contracts import (
     validate_project_profile,
 )
 from .planner import load_capabilities
-
-
-MOVING_REVISIONS = {"main", "master", "HEAD"}
+from .workflow_registry import load_workflows
 
 
 @dataclass
@@ -27,80 +30,46 @@ class DoctorReport:
         return not self.errors
 
 
-def _check_api_automation(profile: dict, root: Path, report: DoctorReport) -> None:
-    error_count = len(report.errors)
-    integration = profile.get("integrations", {}).get("api_automation")
-    if integration is None:
-        return
-    if not isinstance(integration, dict) or not integration.get("skill"):
-        report.errors.append("api automation: integrations.api_automation.skill is required")
-        return
-    repositories = [
-        item
-        for item in profile.get("repositories", {}).get("automation", [])
-        if "api" in item.get("capabilities", [])
-    ]
-    if len(repositories) != 1:
-        report.errors.append("api automation: exactly one api-capable repository is required")
-        return
-    skill = str(integration["skill"])
-    provider = root / "skills" / skill / "provider.yaml"
-    if not provider.is_file():
-        report.errors.append(f"api automation: provider does not exist: {provider}")
-        return
+def _check_automation_provider(
+    profile: dict, root: Path, report: DoctorReport, capability: str
+) -> None:
     try:
-        provider_config = load_yaml(provider)
-    except ContractError as exc:
-        report.errors.append(f"api automation: {exc}")
+        binding = load_automation_provider(
+            root=root, profile=profile, capability=capability
+        )
+    except AutomationProviderError as exc:
+        report.errors.append(f"{capability} automation: {exc}")
         return
-    prepare = provider_config.get("prepare")
-    if provider_config.get("capability") != "api" or not isinstance(prepare, dict):
-        report.errors.append("api automation: provider must declare api capability and prepare")
-        return
-    script_value = prepare.get("script")
-    if not isinstance(script_value, str):
-        report.errors.append("api automation: provider prepare.script is required")
-        return
-    skill_root = provider.parent
-    script = (skill_root / script_value).resolve()
-    try:
-        script.relative_to(skill_root.resolve())
-    except ValueError:
-        report.errors.append("api automation: provider prepare.script escapes the Skill root")
-        return
-    if not script.is_file():
-        report.errors.append(f"api automation: provider script does not exist: {script}")
-        return
-    config = integration.get("config", {})
-    runtime_url = str(config.get("runtime_url", "")).strip()
-    revision = str(config.get("runtime_revision", "")).strip()
-    if not runtime_url.startswith(("https://", "ssh://", "git@")):
-        report.errors.append("api automation: runtime_url must be an HTTPS or SSH Git URL")
-    if not revision or revision in MOVING_REVISIONS:
-        report.errors.append("api automation: runtime_revision must be an immutable tag or commit")
-    if len(report.errors) > error_count:
-        return
-    repository = repositories[0]
+    repository = binding.repository
+    skill = str(binding.integration["skill"])
+    dependency = consumer_dependency(binding)
     report.checks.append(
-        f"api automation {repository['id']} skill={skill} revision={revision}"
+        f"{capability} automation {repository['id']} skill={skill}"
     )
     destination = root / repository["path"]
     if not destination.exists():
-        report.checks.append(f"api automation pending preparation {repository['path']}")
-        return
-    pyproject = destination / "pyproject.toml"
-    if not pyproject.is_file():
-        report.errors.append(
-            f"api automation: prepared repository lacks pyproject.toml: {destination}"
+        report.checks.append(
+            f"{capability} automation pending preparation {repository['path']}"
         )
         return
-    expected = f"git+{runtime_url}@{revision}"
-    if expected not in pyproject.read_text(encoding="utf-8"):
+    manifest = destination / binding.provider["consumer"]["manifest"]
+    if not manifest.is_file():
         report.errors.append(
-            f"api automation: consumer dependency is not pinned to {revision}: {pyproject}"
+            f"{capability} automation: prepared repository lacks consumer manifest: "
+            f"{manifest}"
         )
         return
-    report.checks.append(f"api automation prepared {repository['path']}")
+    if dependency not in manifest.read_text(encoding="utf-8"):
+        report.errors.append(
+            f"{capability} automation: consumer dependency is not configured: {manifest}"
+        )
+        return
+    report.checks.append(f"{capability} automation prepared {repository['path']}")
+
+
+def _check_api_automation(profile: dict, root: Path, report: DoctorReport) -> None:
+    """Compatibility wrapper for callers that explicitly check the API provider."""
+    _check_automation_provider(profile, root, report, "api")
 
 
 def run_doctor(project_file: Path, root: Path) -> DoctorReport:
@@ -118,7 +87,13 @@ def run_doctor(project_file: Path, root: Path) -> DoctorReport:
 
     project_id = profile["project"]["id"]
     report.checks.append(f"project {project_id}")
-    _check_api_automation(profile, root, report)
+    automation_capabilities = {
+        str(capability)
+        for repository in profile.get("repositories", {}).get("automation", [])
+        for capability in repository.get("capabilities", [])
+    }
+    for capability in sorted(automation_capabilities):
+        _check_automation_provider(profile, root, report, capability)
 
     index_path = root / profile["knowledge"]["index"]
     if index_path.is_file():
@@ -149,18 +124,17 @@ def run_doctor(project_file: Path, root: Path) -> DoctorReport:
                 for error in validate_schema(sources, "knowledge-sources")
             )
 
-    capabilities_root = root / "workflows"
-    workflow_packs = sorted(
-        path for path in capabilities_root.iterdir()
-        if path.is_dir() and any(path.glob("capabilities/*.yaml"))
-    ) if capabilities_root.is_dir() else []
-    if not workflow_packs:
-        report.errors.append(f"no capabilities found under {capabilities_root}")
+    workflows = load_workflows(root)
+    if workflows.errors:
+        report.errors.extend(f"workflows: {error}" for error in workflows.errors)
+        return report
+    if not workflows.records:
+        report.errors.append(f"no workflow manifests found under {root / 'workflows'}")
         return report
 
     capabilities: list[tuple[Path, dict]] = []
-    for pack in workflow_packs:
-        registry = load_capabilities(root, workflow=pack.name)
+    for workflow_id in sorted(workflows.records):
+        registry = load_capabilities(root, workflow=workflow_id)
         report.errors.extend(registry.errors)
         capabilities.extend((root / record.path, record.metadata) for record in registry.records)
 

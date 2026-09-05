@@ -246,7 +246,10 @@ side_effect: false
 skill: test-case-design
 ```
 
-Workflow 由 Capability 组成，不再由 Core 中的固定 Python 分支定义。
+Workflow 由 `workflows/<id>/workflow.yaml` 声明阶段顺序、阶段文档、输出范围目录和
+阶段 Gate，并由 Capability 组成，不再由 Core 中的固定 Python 分支定义。
+Automation Skill 的 `provider.yaml` 必须通过 `automation-provider` Schema；Doctor
+与执行入口共用同一个 Provider loader。
 
 ## 6. Project Profile
 
@@ -852,7 +855,7 @@ agent-next explain --run-id <run>
 | `run` | 将选定 Capability 写入既有 Run State，准备 Workflow/Phase/Skill 执行上下文 |
 | `scaffold` | 从正式模板创建 draft Artifact 并登记 Run State |
 | `gate` | 执行 Artifact Validator 与当前 Stage Gate，可显式标记 ready |
-| `record` | 记录当前 Run 的知识、证据和说明 |
+| `record` | 记录当前 Run 的知识、仓库证据、环境检查、确认、追溯关系和说明 |
 | `knowledge` | 预览或显式确认可复用知识提案 |
 | `prepare-automation` | 对已归类的 API 用例准备 Profile 选择的 automation consumer |
 | `status` | 展示当前 Run 和 Artifact 状态 |

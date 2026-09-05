@@ -7,3 +7,10 @@ prepare:
     - sync
     - --project
     - "{destination}"
+configuration:
+  required: [runtime_url, runtime_revision]
+  url_fields: [runtime_url]
+  immutable_revision_fields: [runtime_revision]
+consumer:
+  manifest: pyproject.toml
+  dependency: git+{runtime_url}@{runtime_revision}
