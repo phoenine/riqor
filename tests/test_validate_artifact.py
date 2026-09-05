@@ -25,8 +25,10 @@ def complete(path: Path) -> None:
 
 def complete_requirement(path: Path) -> None:
     text = re.sub(r"<[^>\n]+>", "completed", path.read_text(encoding="utf-8"))
-    text = text.replace("**依据类型**：completed", "**依据类型**：source_explicit")
-    text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+    text = text.replace(
+        "**依据**：completed · completed · completed",
+        "**依据**：明确来源 · 已确认 · PRD §1",
+    )
     path.write_text(text + "\nCompleted artifact content.\n", encoding="utf-8")
 
 
@@ -136,16 +138,17 @@ class ValidateArtifactTests(unittest.TestCase):
                 encoding="utf-8"
             )
             text = re.sub(r"<[^>\n]+>", "completed", text)
-            text = text.replace("**依据类型**：completed", "**依据类型**：source_explicit")
-            text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
-            text = text.replace("**来源定位**：completed", "**来源定位**：")
+            text = text.replace(
+                "**依据**：completed · completed · completed",
+                "**依据**：明确来源 · 已确认 · ",
+            )
             path.write_text(text, encoding="utf-8")
 
             errors = validate_artifact.validate_artifact_file(
                 path, expected_artifact_type="requirement_spec"
             )
 
-            self.assertIn("REQ-001: missing or empty field '来源定位'", errors)
+            self.assertTrue(any("依据 must use" in error for error in errors), errors)
 
     def test_requirement_spec_rejects_duplicate_and_nested_requirement_ids(self):
         with TemporaryDirectory() as tmp:
@@ -154,8 +157,10 @@ class ValidateArtifactTests(unittest.TestCase):
                 encoding="utf-8"
             )
             text = re.sub(r"<[^>\n]+>", "completed", text)
-            text = text.replace("**依据类型**：completed", "**依据类型**：source_explicit")
-            text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+            text = text.replace(
+                "**依据**：completed · completed · completed",
+                "**依据**：明确来源 · 已确认 · PRD §1",
+            )
             atomic_section = text[text.index("### REQ-001 completed") : text.index("## 业务规则")]
             text = text.replace("## 业务规则", atomic_section + "\n### REQ-001-01 nested\n\n## 业务规则")
             path.write_text(text, encoding="utf-8")
@@ -174,8 +179,10 @@ class ValidateArtifactTests(unittest.TestCase):
                 encoding="utf-8"
             )
             text = re.sub(r"<[^>\n]+>", "completed", text)
-            text = text.replace("**依据类型**：completed", "**依据类型**：assumption")
-            text = text.replace("**确认状态**：completed", "**确认状态**：confirmed")
+            text = text.replace(
+                "**依据**：completed · completed · completed",
+                "**依据**：待证假设 · 已确认 · Q-001",
+            )
             path.write_text(text, encoding="utf-8")
 
             errors = validate_artifact.validate_artifact_file(
@@ -183,6 +190,69 @@ class ValidateArtifactTests(unittest.TestCase):
             )
 
             self.assertTrue(any("assumption cannot be confirmed" in error for error in errors))
+
+    def test_requirement_spec_rejects_non_display_labels_in_merged_evidence(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "requirement.md"
+            text = (ROOT / "templates/artifacts/requirement-spec.md.tmpl").read_text(
+                encoding="utf-8"
+            )
+            text = re.sub(r"<[^>\n]+>", "completed", text)
+            text = text.replace(
+                "**依据**：completed · completed · completed",
+                "**依据**：source_explicit · confirmed · PRD §1",
+            )
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="requirement_spec"
+            )
+
+            self.assertTrue(any("明确来源" in error for error in errors), errors)
+            self.assertTrue(any("已确认" in error for error in errors), errors)
+
+    def test_requirement_spec_accepts_legacy_three_field_evidence(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "requirement.md"
+            text = (ROOT / "templates/artifacts/requirement-spec.md.tmpl").read_text(
+                encoding="utf-8"
+            )
+            text = re.sub(r"<[^>\n]+>", "completed", text)
+            text = text.replace(
+                "**依据**：completed · completed · completed",
+                "**依据类型**：source_explicit\n\n"
+                "**确认状态**：confirmed\n\n"
+                "**来源定位**：PRD §1",
+            )
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="requirement_spec"
+            )
+
+            self.assertEqual(errors, [])
+
+    def test_requirement_spec_rejects_merged_and_legacy_evidence_together(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "requirement.md"
+            text = (ROOT / "templates/artifacts/requirement-spec.md.tmpl").read_text(
+                encoding="utf-8"
+            )
+            text = re.sub(r"<[^>\n]+>", "completed", text)
+            text = text.replace(
+                "**依据**：completed · completed · completed",
+                "**依据**：明确来源 · 已确认 · PRD §1\n\n"
+                "**依据类型**：source_explicit\n\n"
+                "**确认状态**：confirmed\n\n"
+                "**来源定位**：PRD §1",
+            )
+            path.write_text(text, encoding="utf-8")
+
+            errors = validate_artifact.validate_artifact_file(
+                path, expected_artifact_type="requirement_spec"
+            )
+
+            self.assertTrue(any("not both" in error for error in errors), errors)
 
     def test_risk_analysis_requires_typed_risk_details(self):
         with TemporaryDirectory() as tmp:

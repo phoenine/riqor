@@ -10,8 +10,9 @@ actions require explicit user confirmation.
 
 ## Required Reading
 
-- Current workflow file selected by `agent-next`
-- `workflows/stage-gates.md`
+- Use the route and blockers already returned by `agent-next explain`; do not
+  reopen the workflow index, selected README, or full Stage Gate audit guide.
+- If no routed Run exists, return to `agent-next` to create one.
 - `references/zentao-sync-rules.md` before uploading, updating, backfilling, or
   verifying ZenTao test cases or bugs.
 

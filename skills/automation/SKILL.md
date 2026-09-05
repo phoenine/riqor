@@ -12,7 +12,9 @@ product or framework.
 
 ## Required context
 
-- Current workflow phase and Stage Gate rules.
+- Current route and blockers from `agent-next explain`; do not reopen router
+  documents or the full Stage Gate audit guide.
+- If no routed Run exists, return to `agent-next` to create one.
 - Project Profile repository entries with the required automation capability.
 - Existing manual and automated coverage.
 - Target environment and its confirmation policy.

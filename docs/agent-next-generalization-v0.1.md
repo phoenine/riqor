@@ -112,6 +112,12 @@ agent-new/
 模板统一使用 `templates/artifacts/*.md.tmpl`，生成产物仍为 `.md`。
 运行时不得再从代码包内维护第二份模板。
 
+Agent 上下文采用渐进加载：新 Run 只读取 Workflow Index 与选中 Workflow 的
+Deliverable Routing；Run State 建立后由 `agent-next explain` 返回当前 Phase、Skill、
+Artifact 与 blocker，并且只读取当前 Phase 文档。`workflows/stage-gates.md` 用于人工审计，
+不作为每阶段必读上下文；权威规则仍由 Workflow manifest 与 `agent-next gate` 执行。
+下游 Skill 不得重复加载 Router 已读取的 Index、Workflow README 或完整 Gate 文档。
+
 ## 5. 核心领域模型
 
 ### 5.1 Project
@@ -513,7 +519,11 @@ Feature Quality 是默认功能测试 Playbook，支持从不同输入成熟度�
 和 Test Case 必须引用 Atomic Requirement ID，不能只引用需求规格 Artifact 或上游
 Feature ID 来声明整体覆盖。
 
-每个 Atomic Requirement 必须记录精确来源、依据类型和确认状态。权威来源明确陈述与
+每个 Atomic Requirement 必须记录精确来源、依据类型和确认状态；面向用户的需求规格将
+三者合并显示为“依据类型 · 结论状态 · 来源定位”，底层校验仍分别处理三个维度。
+重复引用的长来源可以在来源表中定义 `SRC-###`，Atomic Requirement 使用来源 ID 加精确
+章节；追溯校验必须拒绝未定义的来源 ID。
+权威来源明确陈述与
 用户明确确认可以形成已确认需求；测试设计推导不得写回为来源事实；代码、配置和运行
 现象只能作为实现证据或差异，未经权威来源或用户确认不得升级为规范性产品要求；假设
 必须保持待确认并关联开放问题。

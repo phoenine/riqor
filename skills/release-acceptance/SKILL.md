@@ -9,8 +9,9 @@ Use this skill for release acceptance workflows and release-readiness decisions.
 
 ## Required Reading
 
-- `workflows/release-acceptance/README.md`
-- `workflows/stage-gates.md`
+- Use the route and blockers already returned by `agent-next explain`; do not
+  reopen the workflow index, selected README, or full Stage Gate audit guide.
+- If no routed Run exists, return to `agent-next` to create one.
 - `references/acceptance-pages-cases.md` when designing acceptance pages,
   acceptance cases, SPA validation units, or pages/cases synchronization.
 - `references/version-source-sync.md` when release acceptance depends on local

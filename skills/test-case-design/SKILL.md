@@ -20,16 +20,17 @@ test-case-design may detect gaps, but must not silently redefine coverage.
 
 Read these in order every time you generate or supplement test cases:
 
-1. Current phase doc from `python3 tools/phase_doc.py --entry <entry> --phase "<phase>"`
-2. `workflows/stage-gates.md`
-3. **`references/test-case-design-methodology.md`** — TP-to-TC instantiation,
+1. Use the current phase and blockers already returned by `agent-next explain`;
+   do not reopen router documents or the full Stage Gate audit guide.
+   If no routed Run exists, return to `agent-next` to create one.
+2. **`references/test-case-design-methodology.md`** — TP-to-TC instantiation,
    representative data, split/merge, expected-result, and gap rules.
-4. **`references/coverage-review-rules.md`** — TP-to-TC coverage checks,
+3. **`references/coverage-review-rules.md`** — TP-to-TC coverage checks,
    unplanned coverage handling, and coverage match statuses.
-5. **`references/case-writing-rules.md`** — title format, business language,
+4. **`references/case-writing-rules.md`** — title format, business language,
    validity rules. Record this path in `knowledge_used` before writing cases.
-6. `references/test-case-examples.md` when the expected case shape is unclear.
-7. `templates/artifacts/test-cases.md.tmpl` — heading and field layout
+5. `references/test-case-examples.md` when the expected case shape is unclear.
+6. `templates/artifacts/test-cases.md.tmpl` — heading and field layout
 
 Do not write test cases from memory or chat prose alone. The reference defines
 the required title format and forbids API parameter names in titles.
@@ -181,9 +182,8 @@ more specific outcome can be named.
 
 ## Bug Regression Output Routing
 
-See `workflows/bug-regression/README.md` → Deliverable Routing for `{root}` paths and
-templates. Resolve the current phase with `tools/phase_doc.py`. Never place
-deliverable Markdown under `runs/`.
+Use the Deliverable Routing context already loaded by the router for `{root}`
+paths and templates. Never place deliverable Markdown under `runs/`.
 
 ## Do Not
 

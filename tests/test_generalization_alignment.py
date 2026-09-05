@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -46,6 +47,33 @@ class GeneralizationAlignmentTests(unittest.TestCase):
             if path.is_dir() and (path / "SKILL.md").is_file()
         }
         self.assertEqual(distributed, set(GENERIC_SKILLS))
+
+    def test_downstream_skills_do_not_reload_router_documents(self) -> None:
+        forbidden = (
+            "workflows/index.md",
+            "workflows/stage-gates.md",
+        )
+        workflow_readme = re.compile(r"workflows/[^/]+/README\.md")
+        for skill in set(GENERIC_SKILLS) - {"agent-next"}:
+            with self.subTest(skill=skill):
+                text = (ROOT / "skills" / skill / "SKILL.md").read_text(
+                    encoding="utf-8"
+                )
+                for path in forbidden:
+                    self.assertNotIn(path, text)
+                self.assertIsNone(workflow_readme.search(text))
+
+    def test_requirement_phase_references_are_discoverable(self) -> None:
+        phase = (
+            ROOT
+            / "workflows/feature-quality/phases/02-requirement-specification.md"
+        ).read_text(encoding="utf-8")
+        for name in ("requirement-specification.md", "knowledge-proposals.md"):
+            with self.subTest(reference=name):
+                self.assertIn(name, phase)
+                self.assertTrue(
+                    (ROOT / "skills/requirement-analysis/references" / name).is_file()
+                )
 
     def test_zentao_stays_skill_first(self) -> None:
         skill = (ROOT / "skills" / "zentao-sync" / "SKILL.md").read_text(encoding="utf-8")

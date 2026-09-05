@@ -49,6 +49,19 @@ analysis_depth: complex
 
 
 class TraceabilityLintTests(unittest.TestCase):
+    def test_requirement_merged_evidence_is_a_traceability_reference_field(self):
+        text = (
+            "# 需求说明书\n"
+            "### REQ-001 Login\n"
+            "**依据**：明确来源 · 已确认 · RA-001\n"
+        )
+
+        references = traceability_lint._unsupported_ra_references(
+            text, "requirement_spec"
+        )
+
+        self.assertEqual(references, [("RA-001", 3)])
+
     def test_test_points_dangling_reference_is_error(self):
         errors = traceability_lint.lint_test_points_text(
             TEST_POINTS_WITH_DANGLING_REFERENCE,
@@ -66,6 +79,8 @@ class TraceabilityLintTests(unittest.TestCase):
                 "requirement_spec": (
                     "requirements.md",
                     "# 需求说明书\n### REQ-001 Login\n"
+                    "| SRC-001 | PRD | docs/prd.md | Login |\n"
+                    "**依据**：明确来源 · 已确认 · SRC-001 §2\n"
                     "| BR-001 | Rule | Note |\n"
                     "| Q-001 | Question | Impact | Owner |\n"
                     "## 可追溯关系\n| REQ-001 | BR-001 | Q-001 |\n",
@@ -117,6 +132,33 @@ class TraceabilityLintTests(unittest.TestCase):
             self.assertEqual(
                 traceability_lint.lint_run_state_traceability(state, repo_root=root), []
             )
+
+    def test_run_lint_rejects_dangling_requirement_source(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "outputs/demo"
+            output.mkdir(parents=True)
+            requirement_path = output / "requirements.md"
+            requirement_path.write_text(
+                "# 需求说明书\n### REQ-001 Login\n"
+                "**依据**：明确来源 · 已确认 · SRC-999 §2\n",
+                encoding="utf-8",
+            )
+            state = {
+                "artifacts": [
+                    {
+                        "id": "REQ-SPEC-001",
+                        "type": "requirement_spec",
+                        "path": requirement_path.relative_to(root).as_posix(),
+                    }
+                ]
+            }
+
+            errors = traceability_lint.lint_run_state_traceability(
+                state, repo_root=root
+            )
+
+            self.assertTrue(any("SRC-999 NOT FOUND" in error for error in errors), errors)
 
     def test_run_lint_rejects_dangling_state_endpoint_and_undefined_ra(self):
         with TemporaryDirectory() as tmp:

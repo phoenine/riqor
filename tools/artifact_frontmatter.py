@@ -81,20 +81,28 @@ ATOMIC_REQUIREMENT_HEADING_RE = re.compile(
     re.MULTILINE,
 )
 NESTED_REQUIREMENT_HEADING_RE = re.compile(r"^###\s+REQ-\d+-\d+\b", re.MULTILINE)
-REQUIREMENT_FIELDS = (
+REQUIREMENT_BASE_FIELDS = (
     "需求陈述",
-    "依据类型",
-    "确认状态",
-    "来源定位",
     "优先级",
     "验收口径",
 )
+LEGACY_REQUIREMENT_EVIDENCE_FIELDS = ("依据类型", "确认状态", "来源定位")
 VALID_REQUIREMENT_BASIS_TYPES = frozenset(
     {"source_explicit", "user_confirmed", "assumption"}
 )
 VALID_REQUIREMENT_CONFIRMATION_STATUSES = frozenset(
     {"confirmed", "pending", "conflict"}
 )
+REQUIREMENT_BASIS_LABELS = {
+    "明确来源": "source_explicit",
+    "用户确认": "user_confirmed",
+    "待证假设": "assumption",
+}
+REQUIREMENT_STATUS_LABELS = {
+    "已确认": "confirmed",
+    "待确认": "pending",
+    "存在冲突": "conflict",
+}
 RISK_HEADING_RE = re.compile(r"^###\s+(RISK-\d+)(?!-)\s+(.+?)\s*$", re.MULTILINE)
 NESTED_RISK_HEADING_RE = re.compile(r"^###\s+RISK-\d+-\d+\b", re.MULTILINE)
 RISK_FIELDS = (
@@ -253,7 +261,7 @@ def validate_requirement_spec_body(text: str) -> list[str]:
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         section = text[match.end() : end]
         values: dict[str, str] = {}
-        for field in REQUIREMENT_FIELDS:
+        for field in REQUIREMENT_BASE_FIELDS:
             field_match = re.search(
                 rf"^\*\*{re.escape(field)}\*\*[：:][ \t]*(.*?)[ \t]*$",
                 section,
@@ -264,22 +272,88 @@ def validate_requirement_spec_body(text: str) -> list[str]:
                 continue
             values[field] = field_match.group(1).strip()
 
-        basis_type = values.get("依据类型")
-        if basis_type and basis_type not in VALID_REQUIREMENT_BASIS_TYPES:
+        evidence_match = re.search(
+            r"^\*\*依据\*\*[：:][ \t]*(.*?)[ \t]*$",
+            section,
+            re.MULTILINE,
+        )
+        legacy_matches = {
+            field: re.search(
+                rf"^\*\*{re.escape(field)}\*\*[：:][ \t]*(.*?)[ \t]*$",
+                section,
+                re.MULTILINE,
+            )
+            for field in LEGACY_REQUIREMENT_EVIDENCE_FIELDS
+        }
+        has_legacy_evidence = any(
+            match is not None for match in legacy_matches.values()
+        )
+
+        basis_type: str | None = None
+        confirmation_status: str | None = None
+        source_locator: str | None = None
+        if evidence_match and evidence_match.group(1).strip():
+            if has_legacy_evidence:
+                errors.append(
+                    f"{requirement_id}: use either merged '依据' or legacy "
+                    "evidence fields, not both"
+                )
+            evidence_parts = [
+                part.strip() for part in evidence_match.group(1).split("·", maxsplit=2)
+            ]
+            if len(evidence_parts) != 3 or not all(evidence_parts):
+                errors.append(
+                    f"{requirement_id}: 依据 must use "
+                    "'<依据类型> · <结论状态> · <来源定位>'"
+                )
+            else:
+                basis_label, status_label, source_locator = evidence_parts
+                basis_type = REQUIREMENT_BASIS_LABELS.get(basis_label)
+                confirmation_status = REQUIREMENT_STATUS_LABELS.get(status_label)
+                if basis_type is None:
+                    errors.append(
+                        f"{requirement_id}: 依据类型 must be one of: "
+                        + ", ".join(REQUIREMENT_BASIS_LABELS)
+                    )
+                if confirmation_status is None:
+                    errors.append(
+                        f"{requirement_id}: 结论状态 must be one of: "
+                        + ", ".join(REQUIREMENT_STATUS_LABELS)
+                    )
+        elif has_legacy_evidence:
+            for field, field_match in legacy_matches.items():
+                if not field_match or not field_match.group(1).strip():
+                    errors.append(f"{requirement_id}: missing or empty field {field!r}")
+                    continue
+                values[field] = field_match.group(1).strip()
+            basis_type = values.get("依据类型")
+            confirmation_status = values.get("确认状态")
+            source_locator = values.get("来源定位")
+        else:
+            errors.append(f"{requirement_id}: missing or empty field '依据'")
+
+        if (
+            has_legacy_evidence
+            and basis_type
+            and basis_type not in VALID_REQUIREMENT_BASIS_TYPES
+        ):
             errors.append(
                 f"{requirement_id}: 依据类型 must be one of: "
                 + ", ".join(sorted(VALID_REQUIREMENT_BASIS_TYPES))
             )
 
-        confirmation_status = values.get("确认状态")
         if (
-            confirmation_status
+            has_legacy_evidence
+            and confirmation_status
             and confirmation_status not in VALID_REQUIREMENT_CONFIRMATION_STATUSES
         ):
             errors.append(
                 f"{requirement_id}: 确认状态 must be one of: "
                 + ", ".join(sorted(VALID_REQUIREMENT_CONFIRMATION_STATUSES))
             )
+
+        if source_locator is not None and not source_locator.strip():
+            errors.append(f"{requirement_id}: 依据 must include a non-empty 来源定位")
 
         if basis_type == "assumption" and confirmation_status == "confirmed":
             errors.append(

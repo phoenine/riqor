@@ -35,8 +35,8 @@ workflow phase requires them. Each skill file lives at `skills/<skill>/SKILL.md`
 | `release-acceptance` | Release baseline, scope, acceptance plan, release decision | release-acceptance: all phases |
 
 Conditional integration Skills (such as `zentao-sync`) and implementation Skills apply
-only when the phase action and Project Profile need them. The selected workflow file and
-`workflows/stage-gates.md` define when they are in scope.
+only when the phase action and Project Profile need them. The selected Workflow manifest
+defines when they are in scope.
 
 ## Routing Rules
 
@@ -60,24 +60,9 @@ creating run state or writing assets.
 | `bug-regression` | At least one of: bug ID, issue number, fix MR, fix commit, or explicit defect description. |
 | `release-acceptance` | At least one of: release version, tag, deployment environment, release branch, or explicit validation scope. Record `release_scope_tracks` before completing baseline/scope. |
 
-## Required First Actions
+## Gate Enforcement
 
-1. Load `agent-next`.
-2. Select the entrypoint from this index.
-3. Open `workflows/<entry>/README.md` (Deliverable Routing only on first visit).
-4. Resolve and read the current phase: `python3 tools/phase_doc.py --entry <entry> --phase "<phase>"`.
-5. Create or update run state under `runs/<run-id>/` with `workflow` = `workflows/<entry>/README.md`.
-6. Record `project_id`, `tracks`, `entry`, `phase`, `required_skills`, and selected workflow path. For release acceptance, also record `release_scope_tracks`.
-7. Load only the skills required by the current phase.
-8. Record a `skill_receipts[]` entry for each loaded skill.
-9. Record knowledge and repository evidence when a phase uses them.
-
-## Run State
-
-Field definitions: `docs/run-state-compatibility.md`. Schema: `schemas/run-state.schema.json`.
-Update with `tools/run_state.py`; validate with `tools/validate_run_state.py`.
-
-## Global Gates
-
-Global confirmation, repository, knowledge, environment, artifact, and
-traceability rules live in `workflows/stage-gates.md`.
+Use `agent-next explain --run-id <run-id>` for current blockers and
+`agent-next gate --project <profile> --run-id <run-id>` for enforcement. The
+Workflow manifest is authoritative; `workflows/stage-gates.md` is the human
+audit guide and is not required phase context.

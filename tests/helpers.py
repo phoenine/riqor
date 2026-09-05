@@ -51,8 +51,9 @@ def write_template_artifact(
     content = content.replace("TBD", "completed").replace("XXX", "001")
     if template == "requirement-spec":
         content = content.replace(
-            "**依据类型**：completed", "**依据类型**：source_explicit"
-        ).replace("**确认状态**：completed", "**确认状态**：confirmed")
+            "**依据**：completed · completed · completed",
+            "**依据**：明确来源 · 已确认 · PRD §1",
+        )
     if template == "risk-analysis":
         content = content.replace(
             "**Risk Type**：completed", "**Risk Type**：functional"
