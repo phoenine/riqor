@@ -8,10 +8,11 @@ description: Reporting and closeout skill for agent-next. Use when producing fea
 Use this skill to produce concise reports and closeout records from completed
 workflow phases.
 
-## Required Reading
+## Phase Context
 
-- Current workflow file selected by `agent-next`
-- `workflows/stage-gates.md`
+Use the route and blockers already returned by `agent-next explain`; do not
+reopen the workflow index, selected README, or full Stage Gate audit guide.
+If no routed Run exists, return to `agent-next` to create one.
 
 ## Inputs
 

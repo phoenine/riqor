@@ -18,8 +18,9 @@ test-case-design may detect gaps, but must not silently redefine coverage.
 
 ## Required Reading
 
-- Current workflow file selected by `agent-next`
-- `workflows/stage-gates.md`
+- Use the route and blockers already returned by `agent-next explain`; do not
+  reopen the workflow index, selected README, or full Stage Gate audit guide.
+- If no routed Run exists, return to `agent-next` to create one.
 - `references/test-analysis-methodology.md` when creating or revising test
   points, risk coverage, impact coverage, or requirement-to-test traceability.
 - `references/test-point-examples.md` when the expected output shape or

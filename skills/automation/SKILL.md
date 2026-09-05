@@ -12,7 +12,9 @@ product or framework.
 
 ## Required context
 
-- Current workflow phase and Stage Gate rules.
+- Current route and blockers from `agent-next explain`; do not reopen router
+  documents or the full Stage Gate audit guide.
+- If no routed Run exists, return to `agent-next` to create one.
 - Project Profile repository entries with the required automation capability.
 - Existing manual and automated coverage.
 - Target environment and its confirmation policy.
@@ -30,10 +32,10 @@ when classifying test cases or reviewing an existing classification.
    conventions.
 4. Produce an `automation_classification` or execution plan before changing an
    automation repository or running against a shared environment.
-5. For eligible `A0/A1` API or hybrid rows, use `agent-next
-   prepare-automation`; it resolves the repository and implementation provider
-   from the Project Profile. Treat this explicit command as authorization for
-   the declared local scaffold only.
+5. For eligible `A0/A1` API, Web, or hybrid rows, use `agent-next
+   prepare-automation --automation-target <api|web>`; it resolves the repository
+   and implementation provider from the Project Profile. Treat this explicit
+   command as authorization for the declared local scaffold only.
 6. Request confirmation immediately before remote repository mutation.
 7. Record implementation files, revision, validation, and remaining blockers in
    Run State and the relevant artifact. Hand executable selectors and commands
@@ -43,6 +45,12 @@ When API coverage needs a new YAML-driven pytest implementation and the Project
 Profile selects `rigorpath-api-test`, load `pytest-yaml-api`. It owns bootstrap,
 case generation, strict validation, and the `automation_implementation` record;
 this generic Skill continues to own classification and confirmation boundaries.
+
+When Web coverage needs a Playwright pytest implementation and the Project
+Profile selects `rigorpath_web_test`, load `pytest-playwright-web`. It owns Web
+case generation, project Page/Component Object reuse, failure-evidence wiring,
+and implementation validation; this generic Skill continues to own
+classification and confirmation boundaries.
 
 ## Project extensions
 

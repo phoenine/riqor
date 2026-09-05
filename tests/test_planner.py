@@ -159,7 +159,7 @@ class PlannerTests(unittest.TestCase):
                 [step.capability_id for step in report.steps],
                 ["feature-intake", "automation-prepare"],
             )
-            self.assertEqual(report.steps[-1].skill, "pytest-yaml-api")
+            self.assertEqual(report.steps[-1].skill, "automation")
 
     def test_stale_artifact_is_planned_for_regeneration(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

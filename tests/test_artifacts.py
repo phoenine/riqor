@@ -77,8 +77,9 @@ def complete_sections(path: Path) -> None:
     content = content.replace("TBD", "completed").replace("XXX", "001")
     if "# 需求说明书" in content:
         content = content.replace(
-            "**依据类型**：completed", "**依据类型**：source_explicit"
-        ).replace("**确认状态**：completed", "**确认状态**：confirmed")
+            "**依据**：completed · completed · completed",
+            "**依据**：明确来源 · 已确认 · PRD §1",
+        )
     if "# 风险分析" in content:
         content = content.replace(
             "**Risk Type**：completed", "**Risk Type**：functional"

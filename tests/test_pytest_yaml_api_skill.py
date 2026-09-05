@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "skills/pytest-yaml-api/scripts/scaffold_framework.py"
-RUNTIME_URL = "https://github.com/phoenine/rigorpath_api_test.git"
+RUNTIME_URL = "https://github.com/phoenine/rigor-test.git"
 
 
 def load_scaffolder():
@@ -31,7 +31,7 @@ class PytestYamlApiSkillTests(unittest.TestCase):
             self.assertTrue(paths)
             self.assertIn('name = "demo-api-tests"', (destination / "pyproject.toml").read_text())
             self.assertIn(
-                "git+https://github.com/phoenine/rigorpath_api_test.git@v0.1.0",
+                "git+https://github.com/phoenine/rigor-test.git@v0.1.0",
                 (destination / "pyproject.toml").read_text(),
             )
             case = (destination / "testcases/example.yaml").read_text()

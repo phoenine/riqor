@@ -1,16 +1,29 @@
 <p align="center">
-  <img src="docs/images/2.png" alt="Rigor 标志" width="520">
+  <img src="docs/images/2.png" alt="rigor 标志" width="520">
 </p>
 
-# RigorPath（Agent-next）
+# Riqor（Agent-next）
 
 <p align="center">
   <a href="README.md">English</a> | <strong>简体中文</strong>
 </p>
 
-Agent-next 是一个与具体项目无关的测试工程 Agent 工作区。用户只需提供已有资料和期望结果，Agent-next 就会盘点输入、规划缺失依赖、维护可追溯关系，并在执行外部副作用前请求确认。
+Riqor 是一套面向软件测试全过程的 AI 工作台，用来规划、产出并验证测试工作。你可以从手头已有的任何材料开始——PRD、需求文档、代码变更、Bug、发布基线或现有测试用例——然后直接告诉 Riqor 想完成什么。它会识别可以复用的内容、指出缺少的信息，并逐步形成可评审的测试产物。
 
-v0.1 的设计详见 [`docs/agent-next-generalization-v0.1.md`](docs/agent-next-generalization-v0.1.md)。完整且经过验证的端到端示例请参阅 [Shop Platform 快速入门](docs/quickstart-shop-platform.md)。本实现复用并参数化了已验证的 Agent-next Workflow、Skill、Run State、Stage Gate、模板和校验器链路，而不是维护另一套并行执行模型。
+你不需要先理解内部工作流，也不必从固定阶段开始。Riqor 会把需求、风险、测试点、测试用例、自动化、执行证据和报告连接起来，让测试结果在项目持续变化时仍然可以追溯。
+
+常见使用场景包括：
+
+- 为新功能分析风险并设计测试；
+- 针对 Bug 或代码变更规划回归范围；
+- 组织发布验收及其支撑证据；
+- 从已评审的测试用例准备 API 自动化。
+
+Riqor 可以在 Codex、Hermes Agent 等 Agent 环境中使用：Agent 负责对话、理解和分析，底层的 `agent-next` CLI 负责记录工作流状态、检查依赖并执行质量门禁。远程写入和共享环境变更仍然需要用户明确确认。
+
+### 设计与文档
+
+Agent-next 是 Riqor 背后与具体项目无关的工作流引擎。v0.1 的设计详见 [`docs/agent-next-generalization-v0.1.md`](docs/agent-next-generalization-v0.1.md)，完整且经过验证的端到端示例请参阅 [Shop Platform 快速入门](docs/quickstart-shop-platform.md)。整个项目统一复用同一套 Workflow、Skill、Run State、Stage Gate、模板和校验器链路，不维护另一套并行执行模型。
 
 ## 架构概览
 
@@ -72,6 +85,8 @@ ln -s ../skills .agents/skills
 ```
 
 请在仓库根目录执行这些命令。软链接让 Skill 继续保留在源码位置，因此 `skills/` 中的更新会立即对 Agent 生效。如果 `.agents/skills` 已存在，请有意识地复用或替换它，不要重复执行链接命令。
+
+或者，直接指挥你的Hermes安装当前项目中的skills
 
 ### Codex
 

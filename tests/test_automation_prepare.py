@@ -80,8 +80,8 @@ def write_inputs(
     )
 
 
-def prepare_arguments(root: Path) -> list[str]:
-    return [
+def prepare_arguments(root: Path, automation_target: str = "api") -> list[str]:
+    arguments = [
         "prepare-automation",
         "--root",
         str(root),
@@ -97,9 +97,64 @@ def prepare_arguments(root: Path) -> list[str]:
         "automation-login",
         "--no-install",
     ]
+    if automation_target != "api":
+        arguments.extend(["--automation-target", automation_target])
+    return arguments
 
 
 class AutomationPrepareTests(unittest.TestCase):
+    def test_prepare_creates_web_consumer_with_selected_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = init_project(
+                root=root,
+                project_id="iot-ops",
+                name="IoT Ops",
+                tracks=["default"],
+                default_track="default",
+            )
+            profile_path = root / result.profile_path
+            profile = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+            profile["repositories"]["automation"] = [
+                {
+                    "id": "iot-ops-web-test",
+                    "path": "repositories/automation/iot-ops-web-test",
+                    "capabilities": ["web"],
+                }
+            ]
+            profile["integrations"] = {
+                "web_automation": {
+                    "skill": "pytest-playwright-web",
+                    "config": {
+                        "runtime_url": "https://github.com/phoenine/rigor-test.git",
+                        "runtime_revision": "v0.2.0",
+                    },
+                }
+            }
+            profile_path.write_text(
+                yaml.safe_dump(profile, sort_keys=False), encoding="utf-8"
+            )
+            write_inputs(
+                root,
+                target="web",
+                destination="iot-ops-web-test",
+            )
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                status = main(prepare_arguments(root, "web"))
+
+            self.assertEqual(status, 0, output.getvalue())
+            destination = root / "repositories/automation/iot-ops-web-test"
+            self.assertTrue((destination / "pyproject.toml").is_file())
+            self.assertTrue((destination / "pages/__init__.py").is_file())
+            self.assertIn("OK automation project created", output.getvalue())
+            implementation = (
+                root / "outputs/iot-ops/features/login/automation-implementation.md"
+            ).read_text(encoding="utf-8")
+            self.assertIn("自动化类型：web", implementation)
+            self.assertIn("web case generation", implementation)
+
     def test_prepare_creates_consumer_from_classification_and_profile(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

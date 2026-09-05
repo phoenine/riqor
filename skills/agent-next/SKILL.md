@@ -8,20 +8,24 @@ description: Lightweight router for agent-next workflows. Use when any task invo
 Mandatory router for `agent-next`. Declares downstream skills; does not write
 test assets.
 
-## Required Reading
+## Context Loading
 
-Repo root = package root. Read in order:
+Repo root = package root. Keep one copy of routing context in the conversation:
 
-1. `workflows/index.md` — entrypoint routing and skill index
-2. Selected workflow README: `workflows/<entry>/README.md` (Deliverable Routing)
-3. **Current phase only** — resolve path with `phase_doc.py`, then read that file
-4. `workflows/stage-gates.md` (Global Gates + Machine Rules; skip unrelated phases)
+1. For a new run, read `workflows/index.md`, then only the Deliverable Routing
+   section of the selected `workflows/<entry>/README.md`.
+2. Create or update Run State, then use `agent-next explain --run-id <run-id>`
+   for the current route, phase document, required Skills, artifacts, and blockers.
+3. Read only the returned current phase document.
+4. Use `agent-next gate --project <profile> --run-id <run-id>` for enforcement.
+   Do not load `workflows/stage-gates.md` unless the user asks for a Gate audit.
 
 ```bash
 python3 tools/phase_doc.py --entry <entry> --phase "<phase>"
 ```
 
-Do **not** read every `phases/*.md` file in one turn — use `phase_doc.py` for the current phase only.
+Do not reopen the index or workflow README after Run State exists, and do not
+read every `phases/*.md` file in one turn.
 
 If no entrypoint applies, ask one short clarification before run state or artifacts.
 
@@ -55,8 +59,8 @@ operations, follow the profile-selected index. Follow `related[].path`. Record o
 
 ## Confirmation Gates
 
-Require explicit user confirmation before side-effect actions in
-`workflows/stage-gates.md` Global Blocking Actions.
+Require explicit user confirmation immediately before remote writes, shared
+environment execution, shared data or knowledge mutation, SSH, or deployment.
 
 ## Pitfalls
 

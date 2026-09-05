@@ -38,6 +38,7 @@ class AutomationSelection:
     eligible_cases: tuple[str, ...]
     repository: dict[str, Any] | None
     provider: AutomationProviderBinding | None
+    automation_target: str = "api"
 
 
 def _classification_rows(text: str) -> list[tuple[str, str, str, str]]:
@@ -61,6 +62,7 @@ def render_automation_implementation(
     classification_reference: str,
     test_cases_reference: str,
     installed: bool,
+    automation_target: str = "api",
 ) -> str:
     file_rows = "\n".join(
         f"| {path.as_posix()} | generated consumer file | create or verify |"
@@ -84,6 +86,7 @@ def render_automation_implementation(
 
 - 项目：{project_id}
 - 自动化仓库：{repository_id}
+- 自动化类型：{automation_target}
 - 框架依赖：{runtime_dependency}
 - 实现模式：bootstrap
 - 目标环境：not_executed
@@ -117,7 +120,7 @@ def render_automation_implementation(
 
 | Gap | 原因 | 后续动作 |
 |---|---|---|
-| API case generation | 当前步骤只准备框架 | 根据已验证 API contract 生成 AUTO YAML |
+| {automation_target} case generation | 当前步骤只准备框架 | 根据已验证契约生成可执行 AUTO testcase |
 
 ## 可追溯关系
 
@@ -134,7 +137,10 @@ def select_automation_inputs(
     classification_artifact_id: str,
     test_cases_artifact_id: str,
     repository_id: str | None = None,
+    automation_target: str = "api",
 ) -> AutomationSelection:
+    if automation_target not in {"api", "web"}:
+        raise AutomationPrepareError("automation target must be api or web")
     inventory = load_inventory(root, profile)
     if inventory.errors:
         raise AutomationPrepareError("invalid inventory: " + "; ".join(inventory.errors))
@@ -169,7 +175,12 @@ def select_automation_inputs(
             "classification artifact validation failed: " + "; ".join(validation_errors)
         )
     rows = _classification_rows(classification_path.read_text(encoding="utf-8"))
-    eligible = [row for row in rows if row[1] in {"A0", "A1"} and row[2] in {"api", "hybrid"}]
+    eligible_targets = {automation_target, "hybrid"}
+    eligible = [
+        row
+        for row in rows
+        if row[1] in {"A0", "A1"} and row[2] in eligible_targets
+    ]
     records_by_reference = {
         f"{record.artifact_id}@{record.revision}": record
         for record in inventory.records
@@ -195,13 +206,19 @@ def select_automation_inputs(
     add_input(classification)
     if not eligible:
         return AutomationSelection(
-            classification, test_cases, tuple(run_inputs), (), None, None
+            classification,
+            test_cases,
+            tuple(run_inputs),
+            (),
+            None,
+            None,
+            automation_target,
         )
     try:
         provider = load_automation_provider(
             root=root,
             profile=profile,
-            capability="api",
+            capability=automation_target,
             repository_id=repository_id,
         )
     except AutomationProviderError as exc:
@@ -220,10 +237,11 @@ def select_automation_inputs(
         tuple(row[0] for row in eligible),
         repository,
         provider,
+        automation_target,
     )
 
 
-def prepare_api_automation(
+def prepare_automation(
     *,
     root: Path,
     selection: AutomationSelection,

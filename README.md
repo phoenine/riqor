@@ -1,25 +1,45 @@
 <p align="center">
-  <img src="docs/images/2.png" alt="Rigor logo" width="520">
+  <img src="docs/images/2.png" alt="rigor logo" width="520">
 </p>
 
-# RigorPath (Agent-next)
+# Riqor (Agent-next)
 
 <p align="center">
   <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-Agent-next is a project-agnostic testing engineering agent workspace. Users
-provide the assets they already have and a desired result; Agent-next inventories
-the inputs, plans missing dependencies, preserves traceability, and asks before
-performing external side effects.
+Riqor is an AI-assisted workspace for planning, producing, and validating
+software testing work. Start with whatever you already have—a PRD, requirement,
+code change, bug report, release baseline, or existing test cases—and tell Riqor
+what you want to achieve. It identifies what can be reused, highlights what is
+missing, and guides the work toward reviewable test deliverables.
 
-The v0.1 design is documented in
-[`docs/agent-next-generalization-v0.1.md`](docs/agent-next-generalization-v0.1.md).
-For a verified end-to-end example, see the
-[`Shop Platform quickstart`](docs/quickstart-shop-platform.md).
-The implementation reuses and parameterizes the proven Agent-next Workflow,
-Skill, Run State, Stage Gate, template, and validator chain instead of
-maintaining a parallel execution model.
+You do not need to understand its internal workflows or begin from a fixed
+stage. Riqor connects requirements, risks, test points, test cases, automation,
+execution evidence, and reports so that results remain traceable as the project
+changes.
+
+Typical uses include:
+
+- designing tests for a new feature;
+- planning regression coverage for a bug or code change;
+- organizing release acceptance and its supporting evidence;
+- preparing API automation from reviewed test cases.
+
+Riqor is designed to run in agent environments such as Codex and Hermes Agent.
+The agent handles conversation and analysis, while the underlying `agent-next`
+CLI records workflow state, checks dependencies, and enforces quality gates.
+Remote writes and shared-environment changes still require explicit approval.
+
+### Design and documentation
+
+Agent-next is the project-agnostic workflow engine behind Riqor. Its v0.1
+design is documented in
+[`docs/agent-next-generalization-v0.1.md`](docs/agent-next-generalization-v0.1.md),
+and the [`Shop Platform quickstart`](docs/quickstart-shop-platform.md) provides
+a verified end-to-end example. The implementation reuses the same Workflow,
+Skill, Run State, Stage Gate, template, and validator chain throughout the
+project rather than maintaining a parallel execution model.
 
 ## Architecture summary
 

@@ -5,6 +5,11 @@ presented as complete or allowed to continue. Gates are fail-closed: missing
 state, missing evidence, missing skill records, or missing confirmation blocks
 the next phase.
 
+This is a human audit guide, not required per-phase Agent context. Agents use
+`agent-next explain --run-id <run-id>` for current blockers and `agent-next
+gate --project <profile> --run-id <run-id>` for enforcement. The Workflow
+manifest and `tools/stage_gate.py` remain authoritative.
+
 ## Machine Enforcement
 
 Phase-specific machine rules live in each `workflows/<id>/workflow.yaml`.
@@ -25,7 +30,7 @@ receipts, confirmations, and so on). The table below lists **phase-specific**
 machine rules only.
 
 The global gate runs `tools/traceability_lint.py` against current Run artifacts.
-Duplicate definitions, dangling `REQ/RISK/TP/TC/AUTO/BR/Q` references, and undefined
+Duplicate definitions, dangling `REQ/RISK/TP/TC/AUTO/BR/Q/SRC` references, and undefined
 `RA` references fail closed.
 
 ### Machine Rules By Phase
@@ -90,7 +95,7 @@ Every phase must satisfy these checks:
 | Repository evidence | Required repositories include path, revision, and files or commits actually inspected, or the phase records a `repository_not_applicable:` note when no repo was read. |
 | Environment checked | Required `.env` groups are checked before remote reads or execution. |
 | Artifacts tracked | Generated artifacts are listed with path and producing phase. |
-| Traceability valid | Internal `REQ/RISK/TP/TC/AUTO/BR/Q` endpoints resolve in current Run artifacts; duplicate, dangling, and undefined `RA` references fail. |
+| Traceability valid | Internal `REQ/RISK/TP/TC/AUTO/BR/Q/SRC` endpoints resolve in current Run artifacts; duplicate, dangling, and undefined `RA` references fail. |
 | Confirmations tracked | Required user confirmations are recorded before side-effect actions. |
 
 ## Global Blocking Actions
